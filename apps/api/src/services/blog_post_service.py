@@ -51,6 +51,9 @@ class BlogPostService:
             return None
         return await self._repo.update(post_id, **fields)
 
+    async def list_all_public(self, limit: int = 50) -> list[BlogPostRecord]:
+        return await self._repo.list_all_public(limit)
+
     async def delete(self, post_id: str, author_id: str) -> bool:
         record = await self._repo.get_by_id(post_id)
         if record is None or record.author_id != author_id:

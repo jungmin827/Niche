@@ -27,6 +27,12 @@ class ProfileService:
             return None
         return record
 
+    async def get_public_profile_by_handle(self, handle: str) -> ProfileRecord | None:
+        record = await self._repo.get_by_handle(handle)
+        if record is None or not record.is_public:
+            return None
+        return record
+
     async def get_author_info(self, profile_id: str) -> ProfileRecord:
         """Used by archive/feed services to look up author data.
         Always returns a record (creates stub if missing).

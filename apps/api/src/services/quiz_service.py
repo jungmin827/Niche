@@ -7,13 +7,14 @@ from uuid import uuid4
 
 from src import error_codes
 from src.ai.base import AIProvider, QuizQuestion
-from src.exceptions import ConflictError, ForbiddenError, NotFoundError, ServiceUnavailableAppError
+from src.exceptions import ConflictError, ForbiddenError, NotFoundError, ServiceUnavailableAppError, ValidationAppError
 from src.middleware.request_id import get_request_id
 from src.models.quiz import QuizRecord
 from src.models.quiz_attempt import QuizAttemptRecord
 from src.models.quiz_job import QuizJobRecord
 from src.repositories.quiz_job_repo import QuizRepository
 from src.repositories.session_repo import SessionRepository
+from src.services.rank_service import RankService
 from src.schemas.quiz import (
     QuizAnswerGradeDTO,
     QuizAttemptCreateRequest,
@@ -68,10 +69,12 @@ class QuizService:
         quiz_repository: QuizRepository,
         session_repository: SessionRepository,
         ai_provider: AIProvider,
+        rank_service: RankService,
     ) -> None:
         self._quiz_repository = quiz_repository
         self._session_repository = session_repository
         self._ai_provider = ai_provider
+        self._rank_service = rank_service
 
     async def create_job(
         self,
@@ -231,11 +234,14 @@ class QuizService:
             )
 
         if len(payload.answers) != 3:
-            raise ValueError("Expected exactly 3 answers")
+            raise ValidationAppError(
+                "Expected exactly 3 answers.",
+                details={"expected": 3, "actual": len(payload.answers)},
+            )
 
         session = await self._session_repository.get_session(session_id=quiz.session_id)
         note = await self._session_repository.get_note(session_id=quiz.session_id)
-        session_summary = note.summary if note else (session.topic or "")
+        session_summary = note.summary if note else (session.topic if session else "")
         session_insight = note.insight if note else None
 
         questions: list[QuizQuestion] = quiz.questions
@@ -270,6 +276,10 @@ class QuizService:
                 question_grades=grading.question_grades,
                 created_at=_utc_now(),
             )
+        )
+        await self._rank_service.add_score(
+            profile_id=current_user.profile_id,
+            points=attempt.total_score,
         )
         logger.info(
             "request_id=%s event=quiz.attempt.submit attempt_id=%s quiz_id=%s total_score=%s",
@@ -318,7 +328,7 @@ class QuizService:
         attempt = await self._quiz_repository.get_attempt(attempt_id=attempt_id)
         if attempt is None or attempt.quiz_id != quiz_id:
             raise NotFoundError(
-                code=error_codes.NOT_FOUND,
+                code=error_codes.QUIZ_ATTEMPT_NOT_FOUND,
                 message="Attempt not found.",
             )
 
