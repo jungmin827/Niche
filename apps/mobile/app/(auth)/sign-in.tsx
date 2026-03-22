@@ -1,9 +1,11 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, TextInput, View } from 'react-native';
+import { Alert, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppButton from '../../src/components/ui/AppButton';
+import AppInput from '../../src/components/ui/AppInput';
 import AppText from '../../src/components/ui/AppText';
+import { useSessionStore } from '../../src/features/session/store';
 import { supabase } from '../../src/lib/supabase';
 
 type Mode = 'signin' | 'signup';
@@ -13,121 +15,122 @@ export default function SignInScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const clearActiveSession = useSessionStore((s) => s.clearActiveSession);
 
   const isValid = email.trim().includes('@') && password.length >= 6;
 
   const handleSubmit = async () => {
     if (!supabase) {
-      Alert.alert('설정 오류', 'Supabase가 연결되지 않았습니다.');
+      Alert.alert('Configuration Error', 'Supabase is not connected.');
       return;
     }
 
     setLoading(true);
 
-    if (mode === 'signin') {
-      const { error } = await supabase.auth.signInWithPassword({
+    if (mode === 'signup') {
+      const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
       });
       setLoading(false);
+
       if (error) {
-        Alert.alert('로그인 실패', error.message);
+        Alert.alert('Sign Up Failed', error.message);
         return;
       }
-      router.replace('/(tabs)/session');
-    } else {
-      const { error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-      });
-      setLoading(false);
-      if (error) {
-        Alert.alert('회원가입 실패', error.message);
+
+      if (!data.session) {
+        Alert.alert(
+          'Check your email',
+          `A confirmation link was sent to ${email.trim()}.\nPlease verify before signing in.`,
+        );
+        setMode('signin');
         return;
       }
+
+      clearActiveSession();
       router.replace('/(tabs)/session');
+      return;
     }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    setLoading(false);
+
+    if (error) {
+      if (error.message.toLowerCase().includes('email not confirmed')) {
+        Alert.alert('Email not verified', 'Please click the link sent to your email first.');
+      } else {
+        Alert.alert('Sign In Failed', error.message);
+      }
+      return;
+    }
+
+    if (!data.session) {
+      Alert.alert('Error', 'Sign in failed. Please try again.');
+      return;
+    }
+
+    clearActiveSession();
+    router.replace('/(tabs)/session');
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top', 'bottom']}>
-      <View style={{ flex: 1, paddingHorizontal: 32, justifyContent: 'center' }}>
+      <View style={{ flex: 1, paddingHorizontal: 32 }}>
         {/* Header */}
-        <View style={{ marginBottom: 48 }}>
-          <AppText variant="hero" style={{ fontSize: 28, letterSpacing: -0.5, color: '#111', marginBottom: 8 }}>
+        <View style={{ paddingTop: 64, marginBottom: 56 }}>
+          <AppText
+            variant="hero"
+            style={{ fontSize: 28, lineHeight: 34, letterSpacing: -0.5, color: '#111', marginBottom: 10 }}
+          >
             {mode === 'signin' ? 'Sign in' : 'Sign up'}
           </AppText>
           <AppText variant="bodySmall" style={{ color: '#8A8A84' }}>
-            {mode === 'signin' ? '이메일과 비밀번호로 로그인합니다.' : '이메일과 비밀번호로 계정을 만듭니다.'}
+            {mode === 'signin'
+              ? 'Continue with your email and password.'
+              : 'Create an account with your email.'}
           </AppText>
         </View>
 
         {/* Inputs */}
-        <View style={{ gap: 16, marginBottom: 24 }}>
-          <View style={{ gap: 8 }}>
-            <AppText variant="caption" style={{ color: '#8A8A84', letterSpacing: 0.8 }}>
-              EMAIL
-            </AppText>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="name@example.com"
-              placeholderTextColor="#ccc"
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-              style={{
-                height: 52,
-                borderWidth: 1,
-                borderColor: '#D9D9D4',
-                paddingHorizontal: 16,
-                fontSize: 15,
-                color: '#111',
-              }}
-            />
-          </View>
-
-          <View style={{ gap: 8 }}>
-            <AppText variant="caption" style={{ color: '#8A8A84', letterSpacing: 0.8 }}>
-              PASSWORD
-            </AppText>
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              placeholder="6자 이상"
-              placeholderTextColor="#ccc"
-              secureTextEntry
-              returnKeyType="done"
-              onSubmitEditing={handleSubmit}
-              style={{
-                height: 52,
-                borderWidth: 1,
-                borderColor: '#D9D9D4',
-                paddingHorizontal: 16,
-                fontSize: 15,
-                color: '#111',
-              }}
-            />
-          </View>
+        <View style={{ gap: 20, marginBottom: 36 }}>
+          <AppInput
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="name@example.com"
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="email-address"
+          />
+          <AppInput
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            placeholder="At least 6 characters"
+            secureTextEntry
+            returnKeyType="done"
+            onSubmitEditing={handleSubmit}
+          />
         </View>
 
-        {/* Submit */}
+        {/* Actions */}
         <View style={{ gap: 12 }}>
           <AppButton
-            label={loading ? '처리 중...' : mode === 'signin' ? '로그인' : '가입하기'}
+            label={loading ? 'Loading...' : mode === 'signin' ? 'Sign in' : 'Sign up'}
             disabled={loading || !isValid}
             onPress={handleSubmit}
           />
-
-          {/* Mode toggle */}
           <AppButton
-            label={mode === 'signin' ? '계정이 없으신가요? 가입하기' : '이미 계정이 있으신가요? 로그인'}
+            label={mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
             variant="ghost"
             onPress={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
           />
-
           <AppButton
-            label="돌아가기"
+            label="Back"
             variant="ghost"
             onPress={() => router.back()}
           />
