@@ -2,6 +2,8 @@
 
 You are implementing frontend code for NichE inside `apps/mobile`.
 
+Expo SDK 55 기준으로 유지한다. `package.json` 의존성 버전 변경 시 SDK 55 호환성을 확인한다.
+
 ## Read First
 - `docs/frontend/frontend_app.md` — Expo structure and screen flow
 - `docs/design/design_system.md` — UI tone and visual rules

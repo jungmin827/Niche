@@ -31,6 +31,17 @@ module.exports = function (api) {
 
   return {
     presets: ['babel-preset-expo', 'nativewind/babel'],
-    plugins: [importMetaCompatPlugin],
+    plugins: [
+      importMetaCompatPlugin,
+      [
+        'module-resolver',
+        {
+          root: ['.'],
+          alias: {
+            '@': './src',
+          },
+        },
+      ],
+    ],
   };
 };
