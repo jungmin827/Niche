@@ -1,204 +1,223 @@
 import { Feather } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { FlatList, View } from 'react-native';
-import { GestureDetector } from 'react-native-gesture-handler';
-import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
+import { Image } from 'expo-image';
+import { useState } from 'react';
+import { Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSharedValue } from 'react-native-reanimated';
 
 import AppButton from '@/components/ui/AppButton';
 import AppText from '@/components/ui/AppText';
-import { routes } from '@/constants/routes';
+import TextMarquee from '@/components/feed/TextMarquee';
 import { toApiError } from '@/lib/error';
-import { colors, radius, shadows, spacing } from '@/theme/tokens';
-import { usePressScale } from '@/hooks/usePressScale';
-import { useFeedPostsQuery } from '../queries';
-import { FeedPost } from '../types';
-
-function formatRelativeTime(isoString: string): string {
-  const diffMs = Date.now() - new Date(isoString).getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return 'just now';
-  if (diffMin < 60) return `${diffMin}m`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h`;
-  return `${Math.floor(diffHr / 24)}d`;
-}
+import { useWaveFeedQuery } from '../queries';
+import { WaveItem } from '../types';
 
 function formatHeaderDate(): string {
   return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function FeedPostCard({ post, index }: { post: FeedPost; index: number }) {
-  const { gesture, animatedStyle } = usePressScale(() => {
-    router.push(routes.feedComments(post.id));
-  });
-
-  return (
-    <Animated.View
-      entering={FadeInDown.duration(280).delay(index * 50).easing(Easing.out(Easing.cubic))}
-    >
-      <GestureDetector gesture={gesture}>
-        <Animated.View
-          style={[
-            {
-              backgroundColor: colors.surface.primary,
-              borderRadius: radius.sm,
-              padding: spacing.xl,
-              marginBottom: spacing.sm,
-              ...shadows.subtle,
-            },
-            animatedStyle,
-          ]}
-        >
-          {/* Author + time */}
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: spacing.sm,
-            }}
-          >
-            <AppText
-              variant="caption"
-              style={{ color: colors.text.primary, fontWeight: '600', letterSpacing: 0.3 }}
-            >
-              @{post.author.handle}
-            </AppText>
-            <AppText variant="caption" style={{ color: colors.text.tertiary }}>
-              {formatRelativeTime(post.createdAt)}
-            </AppText>
-          </View>
-
-          {/* Content — max 4 lines */}
-          <AppText
-            variant="body"
-            numberOfLines={4}
-            style={{ color: colors.text.primary, lineHeight: 24 }}
-          >
-            {post.content}
-          </AppText>
-
-          {/* Comment count */}
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'flex-end',
-              alignItems: 'center',
-              marginTop: spacing.md,
-              gap: 4,
-            }}
-          >
-            <Feather name="message-circle" size={13} color={colors.text.tertiary} />
-            <AppText variant="caption" style={{ color: colors.text.tertiary }}>
-              {post.commentCount}
-            </AppText>
-          </View>
-        </Animated.View>
-      </GestureDetector>
-    </Animated.View>
-  );
-}
-
-function FabButton() {
-  const { gesture, animatedStyle } = usePressScale(() => {
-    router.push(routes.feedCompose);
-  });
-
-  return (
-    <GestureDetector gesture={gesture}>
-      <Animated.View
-        style={[
-          {
-            position: 'absolute',
-            bottom: 32,
-            right: spacing['2xl'],
-            width: 52,
-            height: 52,
-            borderRadius: 26,
-            backgroundColor: 'rgba(17, 17, 17, 0.88)',
-            borderWidth: 1,
-            borderColor: 'rgba(255, 255, 255, 0.14)',
-            alignItems: 'center',
-            justifyContent: 'center',
-          },
-          animatedStyle,
-        ]}
-      >
-        <Feather name="plus" size={22} color={colors.text.inverse} />
-      </Animated.View>
-    </GestureDetector>
-  );
-}
-
 export default function FeedHomeScreen() {
-  const postsQuery = useFeedPostsQuery();
+  const waveQuery = useWaveFeedQuery();
+  const isPaused = useSharedValue(0);
+  const [selectedItem, setSelectedItem] = useState<WaveItem | null>(null);
+
+  function handlePressIn() {
+    isPaused.value = 1;
+  }
+
+  function handlePressOut() {
+    if (selectedItem === null) {
+      isPaused.value = 0;
+    }
+  }
+
+  function handleItemPress(item: WaveItem) {
+    setSelectedItem(item);
+  }
+
+  function handleCloseOverlay() {
+    setSelectedItem(null);
+    isPaused.value = 0;
+  }
+
+  if (waveQuery.isLoading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top']}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <AppText variant="bodySmall" style={{ color: '#8A8A84' }}>
+            Loading...
+          </AppText>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (waveQuery.isError) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top']}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <AppText variant="title" style={{ marginBottom: 8 }}>
+            Could not load wave.
+          </AppText>
+          <AppText variant="bodySmall" style={{ color: '#8A8A84', marginBottom: 16 }}>
+            {toApiError(waveQuery.error).message}
+          </AppText>
+          <AppButton label="Retry" variant="secondary" onPress={() => waveQuery.refetch()} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const items = waveQuery.data ?? [];
+
+  if (items.length === 0) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top']}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <AppText variant="bodySmall" style={{ color: '#8A8A84' }}>
+            Nothing circulating yet.
+          </AppText>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg.secondary }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top']}>
       {/* Header */}
-      <View
-        style={{
-          paddingHorizontal: spacing['2xl'],
-          paddingTop: spacing.lg,
-          paddingBottom: spacing.md,
-        }}
-      >
+      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
         <AppText variant="title" style={{ letterSpacing: -0.5 }}>
-          Feed
+          Wave
         </AppText>
-        <AppText variant="caption" style={{ color: colors.text.tertiary, marginTop: 2 }}>
+        <AppText variant="caption" style={{ color: '#8A8A84', marginTop: 2 }}>
           {formatHeaderDate()}
         </AppText>
       </View>
 
-      {/* States */}
-      {postsQuery.isLoading ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <AppText variant="bodySmall" style={{ color: colors.text.tertiary }}>
-            Loading...
-          </AppText>
-        </View>
-      ) : postsQuery.isError ? (
-        <View style={{ padding: spacing['2xl'] }}>
+      {/* Marquee layers */}
+      <View style={{ flex: 1, justifyContent: 'center', gap: 48 }}>
+        {/* Layer 1 — background ghost */}
+        <TextMarquee
+          items={items}
+          config={{
+            fontSize: 72,
+            color: '#EFEFEA',
+            speedPxPerSecond: 20,
+            direction: 'ltr',
+          }}
+          isPaused={isPaused}
+          onItemPress={handleItemPress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+        />
+
+        {/* Layer 2 — middle */}
+        <TextMarquee
+          items={items}
+          config={{
+            fontSize: 28,
+            color: '#555555',
+            speedPxPerSecond: 60,
+            direction: 'rtl',
+          }}
+          isPaused={isPaused}
+          onItemPress={handleItemPress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+        />
+
+        {/* Layer 3 — foreground */}
+        <TextMarquee
+          items={items}
+          config={{
+            fontSize: 18,
+            color: '#111111',
+            speedPxPerSecond: 100,
+            direction: 'ltr',
+            fontWeight: 'bold',
+          }}
+          isPaused={isPaused}
+          onItemPress={handleItemPress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+        />
+      </View>
+
+      {/* Overlay */}
+      {selectedItem !== null && (
+        <View
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.88)',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {/* Close button */}
+          <Pressable
+            onPress={handleCloseOverlay}
+            style={{ position: 'absolute', top: 56, right: 20 }}
+            hitSlop={12}
+          >
+            <Feather name="x" size={24} color="#FFFFFF" />
+          </Pressable>
+
+          {/* Image or fallback */}
+          {selectedItem.imageUrl ? (
+            <Image
+              source={{ uri: selectedItem.imageUrl }}
+              style={{
+                width: '75%',
+                aspectRatio: 9 / 16,
+                borderRadius: 4,
+              }}
+              contentFit="cover"
+            />
+          ) : (
+            <View
+              style={{
+                width: '75%',
+                aspectRatio: 9 / 16,
+                borderRadius: 4,
+                backgroundColor: '#111111',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 24,
+              }}
+            >
+              <AppText
+                variant="body"
+                style={{ color: '#FFFFFF', textAlign: 'center', lineHeight: 26 }}
+              >
+                {selectedItem.title}
+              </AppText>
+            </View>
+          )}
+
+          {/* Bottom bar */}
           <View
             style={{
-              backgroundColor: colors.surface.primary,
-              borderRadius: radius.sm,
-              padding: spacing['2xl'],
-              gap: spacing.lg,
-              ...shadows.subtle,
+              position: 'absolute',
+              bottom: 48,
+              left: 24,
+              right: 24,
+              gap: 4,
             }}
           >
-            <AppText variant="title">Could not load feed.</AppText>
-            <AppText variant="bodySmall" style={{ color: colors.text.secondary }}>
-              {toApiError(postsQuery.error).message}
+            <AppText variant="caption" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              @{selectedItem.authorHandle}
             </AppText>
-            <AppButton label="Retry" variant="secondary" onPress={() => postsQuery.refetch()} />
+            <AppText
+              variant="bodySmall"
+              style={{ color: '#FFFFFF' }}
+              numberOfLines={2}
+            >
+              {selectedItem.title}
+            </AppText>
           </View>
         </View>
-      ) : postsQuery.data && postsQuery.data.length > 0 ? (
-        <FlatList
-          data={postsQuery.data}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item, index }) => <FeedPostCard post={item} index={index} />}
-          contentContainerStyle={{
-            paddingHorizontal: spacing.lg,
-            paddingTop: spacing.xs,
-            paddingBottom: 120,
-          }}
-          showsVerticalScrollIndicator={false}
-          style={{ flex: 1 }}
-        />
-      ) : (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <AppText variant="bodySmall" style={{ color: colors.text.tertiary }}>
-            No posts today.
-          </AppText>
-        </View>
       )}
-
-      <FabButton />
     </SafeAreaView>
   );
 }
