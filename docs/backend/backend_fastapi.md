@@ -560,11 +560,18 @@ AI quiz 생성 작업 상태.
 - highlight는 session의 shadow copy가 아니라, 공유/보관용 파생 리소스다.
 - 템플릿 렌더링에 필요한 요약 데이터를 snapshot처럼 보관한다.
 
-## 10.9 follow 관계 (MVP 제외)
+## 10.9 feed_posts (폐기 예정)
+소셜 포스트 방식의 feed_posts 테이블/서비스는 **Feed 탭 재설계로 폐기 예정**이다.
+
+원칙:
+- Feed 탭은 Text Wave (Trend Radar)로 대체되었다. 데이터 원천은 `highlights`다.
+- `feed_posts`, `feed_post_comments` 테이블과 `feed_post_service.py`는 Text Wave 전환 완료 후 제거한다.
+- 현재 코드는 유지하되 신규 기능 개발 대상에서 제외한다.
+
+## 10.10 follow 관계 (MVP 제외)
 팔로우 기능은 이번 MVP 범위에서 제외한다.
 
 원칙:
-- 초기 피드는 공개 블로그 글 + 공개 하이라이트 최신순 조합으로 충분하다.
 - follow 기반 personalization은 v1.1 이후 확장으로 둔다.
 
 ---
@@ -580,12 +587,13 @@ AI quiz 생성 작업 상태.
 - 작성자는 개별 세션 하이라이트 / 블로그 글을 private로 전환 가능
 - private 콘텐츠는 작성자 본인 API에서만 조회 가능
 
-## 11.3 피드 규칙
-피드에는 아래 조건을 만족하는 콘텐츠만 들어간다.
-- public
-- not soft-deleted
-- moderation blocked 아님
-- publish 상태인 리소스
+## 11.3 피드 규칙 (Text Wave 기준)
+Feed 탭은 **Text Wave** 방식으로 동작하며, 데이터 원천은 `highlights` 테이블이다.
+
+- 조건: `visibility = 'public'` AND `created_at >= NOW() - INTERVAL '24 HOURS'` AND `deleted_at IS NULL`
+- 정렬: 랜덤 (`ORDER BY RANDOM()`)
+- 응답 형태: `WaveFeedResponse { waveItems: [...] }` — 커서 페이지네이션 없음
+- 기존 "공개 블로그 글 + 공개 하이라이트 최신순 피드" 컨셉은 Feed 탭에서 제거됨
 
 ## 11.4 아카이브 응답 규칙
 아카이브 탭은 실제로 두 데이터를 합쳐서 보여준다.

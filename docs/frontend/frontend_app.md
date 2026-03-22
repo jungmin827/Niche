@@ -1,4 +1,4 @@
-# NichE Frontend App Spec v1
+# NichE Frontend App Spec v2
 
 ## 문서 목적
 이 문서는 **NichE 모바일 프론트엔드 구현의 기준 문서**이다.
@@ -80,9 +80,9 @@ NichE 프론트엔드는 단순 API 소비 계층이 아니다.
 ## 3. 권장 기술 스택 (확정안)
 
 ## 3.1 앱 프레임워크
-- **Expo SDK 54 + React Native + TypeScript**
+- **Expo SDK 55 + React Native + TypeScript**
 - Expo Router 기반 파일 라우팅 사용
-- Expo Go 앱(SDK 54)과 버전 싱크 유지 — `expo ~54.x`, `react-native 0.81.x`, `react 19.1.x`
+- Expo Go 앱(SDK 55)과 버전 싱크 유지 — `expo ~55.0.x`, `react-native 0.83.x`, `react 19.2.x`
 
 선정 이유:
 - Expo는 앱 개발/실기기 테스트/배포 파이프라인을 빠르게 시작하기 좋다.
@@ -122,7 +122,7 @@ NichE 프론트엔드는 단순 API 소비 계층이 아니다.
 - 에디토리얼/모노크롬 톤을 utility class로 일관되게 맞추기 쉽다.
 - 단, 앱 전체를 utility class만으로 해결하려 하지 말고, 공통 컴포넌트에 스타일을 캡슐화한다.
 
-## 3.5 보조 라이브러리 (Expo SDK 54 호환)
+## 3.5 보조 라이브러리 (Expo SDK 55 호환)
 - `react-native-reanimated`: 화면 전환/하단 시트/미세 모션
 - `react-native-gesture-handler`: 제스처
 - `expo-haptics`: 세션 시작/종료, 저장, 랭크업 등 촉각 피드백
@@ -154,7 +154,7 @@ NichE 프론트엔드는 단순 API 소비 계층이 아니다.
 ## 5. 디렉토리 구조 (권장안)
 
 ```text
-frontend/
+apps/mobile/
   app/
     _layout.tsx
     index.tsx
@@ -162,49 +162,61 @@ frontend/
       _layout.tsx
       welcome.tsx
       sign-in.tsx
-      onboarding.tsx
+      onboarding.tsx          ← 현재 빈 파일, 미구현
     (tabs)/
-      _layout.tsx
+      _layout.tsx             ← 4탭: session / feed / blog / archive
       session/
+        _layout.tsx
         index.tsx
         active.tsx
         complete.tsx
         [sessionId].tsx
       feed/
+        _layout.tsx
         index.tsx
         [postId].tsx
-        user/[userId].tsx
+      blog/
+        _layout.tsx
+        index.tsx             ← 전체 유저 공개 글 목록
+        [postId].tsx
       archive/
+        _layout.tsx
         index.tsx
-        blog/[postId].tsx
         highlight/[highlightId].tsx
     (modals)/
-      blog-compose.tsx
+      _layout.tsx
       session-note.tsx
       share-preview.tsx
+      quiz-loading.tsx
+      quiz-answer.tsx
+      quiz-result.tsx
+      highlight-create.tsx
+      highlight-session-picker.tsx
+      highlight-viewer.tsx
+      blog-compose.tsx
+      feed-compose.tsx
+      feed-comments.tsx
+      profile-edit.tsx
   src/
     api/
-      client.ts
+      client.ts               ← 단일 HTTP 클라이언트, Bearer token 자동 주입
       auth.ts
       session.ts
       feed.ts
       archive.ts
       blog.ts
+      highlight.ts
+      quiz.ts
       profile.ts
     components/
       ui/
         AppText.tsx
         AppButton.tsx
         AppInput.tsx
-        AppSheet.tsx
         AppCard.tsx
-        AppAvatar.tsx
-        AppEmpty.tsx
-        AppLoader.tsx
       layout/
         Screen.tsx
         TopBar.tsx
-        TabHeader.tsx
       session/
         SessionTimer.tsx
         SessionStartCard.tsx
@@ -213,53 +225,61 @@ frontend/
         SessionStreakCard.tsx
       feed/
         FeedCard.tsx
-        FeedFilterBar.tsx
       archive/
-        BlogListItem.tsx
         HighlightCard.tsx
         ArchiveHero.tsx
       share/
-        ShareTemplateA.tsx
-        ShareTemplateB.tsx
         SharePreview.tsx
+        NikeTemplate.tsx
     features/
       auth/
-        hooks.ts
-        store.ts
         types.ts
       session/
-        hooks.ts
-        store.ts
+        store.ts              ← Zustand, AsyncStorage persist
         queries.ts
         mutations.ts
         types.ts
         utils.ts
+        screens/
       feed/
-        hooks.ts
         queries.ts
-        types.ts
-      archive/
-        hooks.ts
-        queries.ts
-        types.ts
-      blog/
-        hooks.ts
         mutations.ts
-        queries.ts
         types.ts
-      profile/
-        hooks.ts
+        screens/
+      blog/
         queries.ts
+        mutations.ts
         types.ts
+        screens/
+      archive/
+        queries.ts
+        mutations.ts
+        types.ts
+        screens/
+      highlight/
+        queries.ts
+        mutations.ts
+        types.ts
+        screens/
+      quiz/
+        queries.ts
+        mutations.ts
+        types.ts
+        screens/
       share/
         capture.ts
         helpers.ts
+        hooks.ts
         types.ts
+        screens/
+      profile/
+        queries.ts
+        mutations.ts
+        types.ts
+        screens/
     hooks/
-      useAuthGuard.ts
-      useKeyboard.ts
-      useDebouncedValue.ts
-      useAppStateRefresh.ts
+      useAuthSession.ts
+      usePressScale.ts
     lib/
       supabase.ts
       queryClient.ts
@@ -277,9 +297,6 @@ frontend/
     constants/
       queryKeys.ts
       routes.ts
-    types/
-      api.ts
-      common.ts
     providers/
       AppProviders.tsx
   assets/
@@ -289,6 +306,7 @@ frontend/
   package.json
   app.json
   eas.json
+  tailwind.config.js
 ```
 
 ### 구조 원칙
@@ -302,40 +320,45 @@ frontend/
 
 ## 6. 네비게이션 구조
 
-NichE의 공식 탭 구조는 아래 3개다.
+NichE의 실제 탭 구조는 아래 4개다.
 
-- **세션**
-- **피드**
-- **아카이브**
+- **세션** (`session`)
+- **피드** (`feed`)
+- **블로그** (`blog`) ← 전체 유저 공개 글 탐색 전용 탭
+- **아카이브** (`archive`)
 
-Expo Router의 route group으로 다음 구조를 권장한다.
+Expo Router의 route group으로 다음 구조를 사용한다.
 
 ### 6.1 최상위 그룹
 - `(auth)`: 로그인/온보딩
 - `(tabs)`: 실제 앱 진입 후 하단 탭
-- `(modals)`: 작성/공유/상세 액션용 모달
+- `(modals)`: 작성/공유/상세 액션용 모달 (stack 위에 modal 프레젠테이션)
 
 ### 6.2 화면 흐름
 
 #### 인증 전
 - welcome
 - sign-in
-- onboarding
+- onboarding (미구현 — 현재 탭 진입 차단 로직 없음)
 
 #### 인증 후
-- 탭 진입: session / feed / archive
+- 탭 진입: session / feed / blog / archive
+  - feed = Text Wave (Trend Radar), 소셜 포스트 스크롤이 아님
+  - blog = 개인 장문 기록(Dump) 전용, 타인 글 탐색 아님
 
 #### 모달/서브 플로우
-- session note 작성
-- blog compose
-- share preview
-- highlight 상세
-- feed post 상세
+- session note 작성 (`session-note`)
+- share preview (`share-preview`)
+- quiz 플로우 (`quiz-loading` → `quiz-answer` → `quiz-result`)
+- highlight 생성/선택/뷰어 (`highlight-create`, `highlight-session-picker`, `highlight-viewer`)
+- blog compose (`blog-compose`)
+- feed compose / comments (`feed-compose`, `feed-comments`) ← 현재 구현 있으나 Text Wave 전환 후 역할 재검토 필요
+- profile edit (`profile-edit`)
 
 ### 6.3 라우팅 원칙
-- **탭은 3개만 유지**하고, 작성/공유/세부 동작은 modal/push screen으로 해결한다.
-- 세션 진행 중에는 사용자가 다른 탭으로 가도 **세션 상태가 유실되지 않아야 한다**.
-- 인증이 필요한 화면은 `useAuthGuard`로 보호한다.
+- 작성/공유/세부 동작은 modal/push screen으로 해결한다.
+- 세션 진행 중에는 사용자가 다른 탭으로 가도 **세션 상태가 유실되지 않아야 한다** (Zustand + AsyncStorage persist).
+- 인증이 필요한 화면은 `useAuthSession` hook으로 보호한다.
 - deep link는 나중에 열어두되, MVP에서는 내부 라우팅 안정성을 우선한다.
 
 ---
@@ -439,41 +462,81 @@ Expo Router의 route group으로 다음 구조를 권장한다.
 
 ---
 
-## 7.3 피드 탭
+## 7.3 피드 탭 — Text Wave (Trend Radar)
 
-### Feed Home (`/feed`)
-MVP 기준 목적:
-- 비슷한 취향의 콘텐츠를 가볍게 탐색
-- 서비스의 사회적 확장 가능성을 미리 보여줌
+> ⚠️ 기존 소셜 포스트 수직 스크롤 피드 개념은 **전면 폐기**되었다.
+> Feed 탭은 **"Infinite Marquee Text Wave"** 로 완전히 재설계되었다.
 
-보여줘야 할 것:
-- 블로그형 글 카드 또는 하이라이트 카드 믹스 피드
-- 태그 기반 필터
-- 유저 카드 또는 추천 섹션 (선택적)
+### 개념
+지난 24시간 공개 하이라이트 제목들이 화면을 가로지르며 수평 흐름으로 보여지는 공간.
+SNS 피드가 아닌 **포에틱 에디토리얼 티커 테이프** 또는 **현대 아트 설치물** 같은 느낌이어야 한다.
 
-MVP 규칙:
-- 알고리즘 추천을 과하게 설계하지 않는다.
-- 최신순 + 관심 태그 우선 노출 정도면 충분하다.
+### Feed Home (`/feed`) — Text Wave
 
-### Feed Post Detail (`/feed/[postId]`)
-필수 요소:
-- 콘텐츠 본문
-- 작성자 정보
-- 관련 태그
-- 저장 / 공유 / 프로필 진입
+#### 시각 구조: 3개의 패럴랙스 레이어
+| 레이어 | 폰트 크기 | 색상 | 속도 | 방향 |
+|---|---|---|---|---|
+| Layer 1 (Background) | 매우 큰 | `#EFEFEA` (very light gray) | 매우 느림 | Left → Right |
+| Layer 2 (Middle) | 중간 | `#555555` (dark gray) | 중간 | Right → Left |
+| Layer 3 (Foreground) | 기본 | `#111111` (deep black), bold | 빠름 | Left → Right |
 
-### Feed User Profile (`/feed/user/[userId]`)
-MVP에서는 제한된 공개 프로필.
+#### 인터랙션
+- 각 텍스트 아이템은 `Pressable`로 감싼다.
+- `onPressIn`: 모든 레이어 애니메이션을 부드럽게 감속 → 일시정지
+- `onPress`: 해당 하이라이트의 9:16 템플릿 이미지를 BottomSheet Modal로 오픈 (`highlight-viewer`)
+- `onRelease` / Modal 닫기: 정상 속도로 부드럽게 재가속
 
-보여줘야 할 것:
-- 유저명
-- 대표 태그
-- 공개 하이라이트 일부
-- 공개 블로그 글 일부
+#### 데이터 원천
+- API: `GET /v1/feed/wave`
+- 조건: `is_public = true` AND `created_at >= NOW() - 24h`
+- 최대 30~50개, 매 요청마다 랜덤 순서 반환
+
+#### 기술 구현 원칙
+- **반드시 `react-native-reanimated` 사용** — UI thread에서 60fps 보장
+- JS-thread interval 방식 금지
+- 텍스트 배열을 복제해 seamless 무한 루프 구현 (`useSharedValue` + `translateX`)
+- 재사용 가능한 `TextMarquee` 컴포넌트로 분리
+
+#### 구현 파일 위치
+- `src/features/feed/screens/FeedHomeScreen.tsx` — 완전 재작성 대상
+- `src/components/feed/TextMarquee.tsx` — 신규 생성
+- `src/api/feed.ts` — `getWaveFeed()` 함수 추가
+- `src/features/feed/queries.ts` — `useWaveFeedQuery` hook 추가
 
 ---
 
-## 7.4 아카이브 탭
+## 7.4 블로그 탭 — 개인 장문 기록 (Dump)
+
+### 개념
+블로그 탭은 전체 유저 글 탐색 공간이 **아니다**.
+사용자 자신의 깊은 생각을 장문으로 기록하는 **개인 Dump 전용 공간**이다.
+
+### Blog Home (`/blog`)
+목적:
+- 내가 쓴 블로그 글 목록 확인
+- 새 장문 글 작성 진입
+
+보여줘야 할 것:
+- 내 블로그 글 목록 (최신순)
+- 작성 CTA
+
+MVP 규칙:
+- 이 탭에서는 다른 유저의 글을 브라우징하지 않는다.
+- 전체 유저 공개 글 탐색은 추후 별도 탐색 기능으로 분리한다.
+- 작성 진입은 FAB 또는 헤더 버튼 → `blog-compose` 모달.
+
+### Blog Post Detail (`/blog/[postId]`)
+필수 요소:
+- 제목
+- 작성일
+- 본문 (읽기 경험 우선)
+- 태그
+- 관련 세션 링크 (선택)
+- 수정/삭제 (본인 글일 때)
+
+---
+
+## 7.5 아카이브 탭
 
 아카이브는 **블로그 흐름 + 하이라이트 보관함**이 공존하는 개인 공간이다.
 
@@ -763,12 +826,18 @@ NichE 프론트의 핵심 차별점 중 하나다.
 - SessionTimer
 - SessionStartCard
 - SessionSummaryCard
-- FeedCard
+- **TextMarquee** ← Text Wave 핵심 컴포넌트 (react-native-reanimated 기반)
 - HighlightCard
 - BlogListItem
 - ArchiveHero
 - RankBadge
 - ShareTemplateCard
+
+> **TextMarquee 컴포넌트 스펙:**
+> - props: `items: WaveItem[]`, `speed: number`, `direction: 'ltr' | 'rtl'`, `fontSize: number`, `color: string`
+> - `useSharedValue` + `translateX` 기반 무한 루프
+> - `onPressIn` / `onPress` 핸들러로 외부에서 pause/resume 제어 가능
+> - 위치: `src/components/feed/TextMarquee.tsx`
 
 ## 14.3 금지 사항
 - 화면마다 일회성 버튼/텍스트 스타일을 남발하지 않는다.
@@ -862,6 +931,7 @@ MVP에서 최소 시나리오만 구성:
 - `EXPO_PUBLIC_SUPABASE_URL`
 - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 - `EXPO_PUBLIC_APP_ENV`
+- `EXPO_PUBLIC_DEV_ACCESS_TOKEN` ← 개발 환경에서 인증 토큰 고정 주입용 (프로덕션 미사용)
 
 규칙:
 - `EXPO_PUBLIC_*`는 클라이언트 노출 전제를 이해하고 사용한다.
@@ -872,42 +942,53 @@ MVP에서 최소 시나리오만 구성:
 
 ## 19. 구현 우선순위
 
-## Phase 1 — Skeleton
+> 상태 기준: 2026-03-22
+
+## Phase 1 — Skeleton ✅ 완료
 - Expo app 생성
 - Router 세팅
 - Provider 세팅
 - theme / ui primitives 구축
 - auth bootstrap
-- 탭 3개 골격 생성
+- 탭 4개 골격 생성 (session / feed / blog / archive)
 
-## Phase 2 — Session core
-- 세션 홈
+## Phase 2 — Session core ✅ 완료
+- 세션 홈 (오늘의 누적 시간, 최근 세션 카드, 세션 시작 CTA)
 - active timer
-- 종료/회고 저장
+- 종료/회고 저장 (session-note modal)
 - 세션 상세
-- 아카이브에 하이라이트 반영
+- quiz 플로우 (loading → answer → result)
 
-## Phase 3 — Archive core
-- archive home
-- 블로그 리스트/상세
-- 블로그 작성
-- 하이라이트 상세
+## Phase 3 — Archive core ✅ 완료
+- archive home (avatar + rank + stats + highlight circles + 2열 블로그 그리드)
+- highlight create / session-picker / viewer (풀스크린 스와이프)
+- blog 리스트/상세 (blog 탭)
+- blog compose modal
 
-## Phase 4 — Share templates
+## Phase 4 — Share templates ✅ 완료
 - share model 정의
-- template A/B 구현
-- preview + export
+- ShareTemplateA / NikeTemplate 구현
+- SharePreview + react-native-view-shot 캡처
 
-## Phase 5 — Feed basic
-- 피드 리스트
-- 글 상세
-- 유저 프로필 미니 페이지
+## Phase 5 — Feed + Profile ✅ 완료
+- 피드 리스트 (최신순)
+- feed compose / comments modal
+- profile-edit modal (displayName, avatar 업로드)
 
-## Phase 6 — Polish
-- loading/empty/error 상태 정리
-- analytics wrapper
-- performance cleanup
+## Phase 6 — Feed Text Wave (현재 스프린트) 🔄 진행 중
+- **FeedHomeScreen 완전 재작성** — 기존 소셜 포스트 피드 → Text Wave
+- **TextMarquee 컴포넌트 신규 구현** — 3개 패럴랙스 레이어, pause/resume 인터랙션
+- **`GET /v1/feed/wave` 백엔드 구현** — 24h TTL, random, max 50
+- `src/api/feed.ts` + `src/features/feed/queries.ts` 업데이트
+- highlight-viewer modal 연결 (텍스트 클릭 시 하이라이트 이미지 오픈)
+
+## Phase 7 — Polish (다음 단계)
+- loading/empty/error 상태 정리 (일부 화면 누락)
+- Onboarding 구현 (현재 빈 파일, 탭 진입 차단 로직 없음)
+- Rank 연결 (RankBadge 컴포넌트 미구현, 랭크 데이터 미연결)
+- Session Bundle 프론트 연결 (백엔드는 완료)
 - haptics/motion polish
+- analytics wrapper
 
 ---
 
@@ -933,7 +1014,7 @@ MVP에서 최소 시나리오만 구성:
 ### 확정
 - 앱은 Expo + React Native + TypeScript로 간다.
 - 라우팅은 Expo Router를 사용한다.
-- 탭 구조는 세션 / 피드 / 아카이브다.
+- 탭 구조는 세션 / 피드 / 블로그 / 아카이브다 (4탭).
 - 서버 상태는 TanStack Query로 관리한다.
 - 로컬 UI 상태는 Zustand로 관리한다.
 - 폼은 React Hook Form + Zod를 사용한다.
@@ -942,11 +1023,15 @@ MVP에서 최소 시나리오만 구성:
 - 템플릿 공유는 앱 내부 렌더 + 캡처 방식으로 구현한다.
 - 스타일링은 NativeWind 중심으로 간다.
 
-### 아직 열려 있음
-- 온보딩 필드의 최종 상세
-- 템플릿 variant의 정확한 디자인 세트
-- 피드 카드 타입 비율(블로그 vs 하이라이트)
-- 공개 범위/프라이버시의 세부 단계(예: 친구 공개, 링크 공개 등)
+### 아직 열려 있음 / 미구현
+- **Feed Text Wave 구현** (현재 스프린트 목표)
+  - FeedHomeScreen 재작성, TextMarquee 컴포넌트, `/v1/feed/wave` 연동
+- 온보딩 구현 (onboarding.tsx 빈 파일, 탭 진입 차단 로직 없음)
+- Rank 시스템 연결 (RankBadge 컴포넌트, 랭크 데이터 표시)
+- Session Bundle 프론트 연결
+- feed-compose / feed-comments 모달의 Text Wave 전환 후 역할 재정의
+- 템플릿 variant의 정확한 디자인 세트 확정
+- 공개 범위/프라이버시의 세부 단계
 - 앱 내 알림 전략
 
 ---
