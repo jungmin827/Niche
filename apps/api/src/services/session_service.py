@@ -217,7 +217,7 @@ class SessionService:
         session = await self._get_owned_session(current_user=current_user, session_id=session_id)
         if session.status != "completed":
             raise ConflictError(
-                code=error_codes.SESSION_NOT_ACTIVE,
+                code=error_codes.SESSION_NOT_COMPLETED,
                 message="Notes can only be saved for completed sessions.",
             )
 

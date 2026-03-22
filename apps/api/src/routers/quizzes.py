@@ -3,9 +3,11 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, status
 
 from src.ai.base import AIProvider
-from src.dependencies.repositories import get_ai_provider, get_quiz_repository, get_session_repository
+from src.dependencies.repositories import get_ai_provider, get_profile_repo, get_quiz_repository, get_session_repository
+from src.repositories.profile_repo import ProfileRepository
 from src.repositories.quiz_job_repo import QuizRepository
 from src.repositories.session_repo import SessionRepository
+from src.services.rank_service import RankService
 from src.schemas.quiz import (
     QuizAttemptCreateRequest,
     QuizAttemptDetailDTO,
@@ -25,11 +27,14 @@ def get_quiz_service(
     quiz_repository: QuizRepository = Depends(get_quiz_repository),
     session_repository: SessionRepository = Depends(get_session_repository),
     ai_provider: AIProvider = Depends(get_ai_provider),
+    profile_repo: ProfileRepository = Depends(get_profile_repo),
 ) -> QuizService:
+    rank_service = RankService(repo=profile_repo)
     return QuizService(
         quiz_repository=quiz_repository,
         session_repository=session_repository,
         ai_provider=ai_provider,
+        rank_service=rank_service,
     )
 
 

@@ -24,6 +24,7 @@ class BlogPostListItemResponse(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
     id: str
+    author_id: str
     title: str
     excerpt: str | None
     cover_image_url: str | None

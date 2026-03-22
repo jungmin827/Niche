@@ -3,8 +3,10 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import Response
 
+from src import error_codes
 from src.config import Settings, get_settings
 from src.dependencies.repositories import get_blog_post_repo
+from src.exceptions import NotFoundError
 from src.models.blog_post import BlogPostRecord
 from src.repositories.blog_post_repo import BlogPostRepository
 from src.schemas.blog_post import (
@@ -42,6 +44,26 @@ def _to_response(record: BlogPostRecord, service: BlogPostService) -> BlogPostRe
     )
 
 
+@router.get("/blog-posts", response_model=BlogPostListResponse)
+async def list_public_blog_posts(
+    service: BlogPostService = Depends(get_blog_post_service),
+) -> BlogPostListResponse:
+    records = await service.list_all_public()
+    items = [
+        BlogPostListItemResponse(
+            id=r.id,
+            author_id=r.author_id,
+            title=r.title,
+            excerpt=r.excerpt,
+            cover_image_url=service._resolve_cover_url(r.cover_image_path),
+            visibility=r.visibility,
+            published_at=r.published_at,
+        )
+        for r in records
+    ]
+    return BlogPostListResponse(items=items, next_cursor=None, has_next=False)
+
+
 @router.post("/blog-posts", response_model=BlogPostEnvelope, status_code=status.HTTP_201_CREATED)
 async def create_blog_post(
     payload: CreateBlogPostRequest,
@@ -67,12 +89,8 @@ async def get_blog_post(
 ) -> BlogPostEnvelope:
     record = await service.get_by_id(post_id)
     if record is None:
-        from src.exceptions import NotFoundError
-        from src import error_codes
         raise NotFoundError(code=error_codes.NOT_FOUND, message="Blog post not found.")
     if record.visibility == "private" and record.author_id != current_user.profile_id:
-        from src.exceptions import NotFoundError
-        from src import error_codes
         raise NotFoundError(code=error_codes.NOT_FOUND, message="Blog post not found.")
     return BlogPostEnvelope(post=_to_response(record, service))
 
@@ -91,8 +109,6 @@ async def update_blog_post(
         **updates,
     )
     if record is None:
-        from src.exceptions import NotFoundError
-        from src import error_codes
         raise NotFoundError(code=error_codes.NOT_FOUND, message="Blog post not found.")
     return BlogPostEnvelope(post=_to_response(record, service))
 
@@ -105,8 +121,6 @@ async def delete_blog_post(
 ) -> Response:
     deleted = await service.delete(post_id=post_id, author_id=current_user.profile_id)
     if not deleted:
-        from src.exceptions import NotFoundError
-        from src import error_codes
         raise NotFoundError(code=error_codes.NOT_FOUND, message="Blog post not found.")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -121,6 +135,7 @@ async def list_my_blog_posts(
     items = [
         BlogPostListItemResponse(
             id=r.id,
+            author_id=r.author_id,
             title=r.title,
             excerpt=r.excerpt,
             cover_image_url=service._resolve_cover_url(r.cover_image_path),

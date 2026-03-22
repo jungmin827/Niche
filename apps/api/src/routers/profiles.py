@@ -57,6 +57,31 @@ async def update_my_profile(
     return ProfileEnvelope(profile=_to_profile_dto(record, service))
 
 
+@router.get("/users/handle/{handle}", response_model=PublicProfileEnvelope)
+async def get_public_profile_by_handle(
+    handle: str,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+    service: ProfileService = Depends(get_profile_service),
+) -> PublicProfileEnvelope:
+    record = await service.get_public_profile_by_handle(handle)
+    if record is None:
+        raise NotFoundError(
+            code=error_codes.PROFILE_NOT_FOUND,
+            message="Profile not found.",
+        )
+    return PublicProfileEnvelope(
+        profile=PublicProfileDTO(
+            id=record.id,
+            handle=record.handle,
+            display_name=record.display_name,
+            bio=record.bio,
+            avatar_url=service._resolve_avatar_url(record.avatar_path),
+            current_rank_code=record.current_rank_code,
+            rank_score=record.rank_score,
+        )
+    )
+
+
 @router.get("/users/{profile_id}", response_model=PublicProfileEnvelope)
 async def get_public_profile(
     profile_id: str,
