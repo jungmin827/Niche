@@ -10,7 +10,7 @@ from src import error_codes
 from src.config import get_settings
 from src.exceptions import AppError
 from src.middleware.request_id import request_id_middleware
-from src.routers import archive, feed, health, highlights, quizzes, sessions
+from src.routers import archive, blog_posts, feed, health, highlights, profiles, quizzes, session_bundles, sessions, uploads
 from src.schemas.common import ErrorDetail, ErrorResponse
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
@@ -83,11 +83,15 @@ def create_app() -> FastAPI:
         )
 
     app.include_router(health.router)
+    app.include_router(profiles.router)
     app.include_router(sessions.router)
     app.include_router(highlights.router)
     app.include_router(archive.router)
     app.include_router(feed.router)
     app.include_router(quizzes.router)
+    app.include_router(session_bundles.router)
+    app.include_router(blog_posts.router)
+    app.include_router(uploads.router)
 
     @app.get("/")
     async def root() -> dict[str, str]:

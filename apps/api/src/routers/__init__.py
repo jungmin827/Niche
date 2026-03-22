@@ -1,1 +1,1 @@
-from . import archive, health, highlights, sessions
+from . import archive, health, highlights, profiles, sessions
