@@ -3,16 +3,27 @@ import logging
 
 from fastapi import Depends
 
+from src.ai.base import AIProvider
+from src.ai.providers.gemini_adapter import GeminiAdapter
 from src.config import Settings, get_settings
 from src.db import get_async_session_factory
 from src.exceptions import ServiceUnavailableAppError
+from src.repositories.blog_post_repo import BlogPostRepository, InMemoryBlogPostRepository
 from src.repositories.highlight_repo import HighlightRepository, InMemoryHighlightRepository, PostgresHighlightRepository
+from src.repositories.profile_repo import InMemoryProfileRepository, ProfileRepository
 from src.repositories.quiz_job_repo import InMemoryQuizRepository, QuizRepository
+from src.repositories.session_bundle_repo import InMemorySessionBundleRepository, SessionBundleRepository
 from src.repositories.session_repo import SessionRepository, InMemorySessionRepository, PostgresSessionRepository
+from src.services.blog_post_service import BlogPostService
+from src.services.profile_service import ProfileService
+from src.services.upload_service import UploadService
 
 _memory_session_repository = InMemorySessionRepository()
 _memory_highlight_repository = InMemoryHighlightRepository()
 _memory_quiz_repository = InMemoryQuizRepository()
+_memory_blog_post_repository = InMemoryBlogPostRepository()
+_memory_session_bundle_repository = InMemorySessionBundleRepository()
+_memory_profile_repository = InMemoryProfileRepository()
 logger = logging.getLogger("niche.repositories")
 
 
@@ -71,6 +82,51 @@ def get_highlight_repository(settings: Settings = Depends(get_settings)) -> High
 def get_quiz_repository(settings: Settings = Depends(get_settings)) -> QuizRepository:
     # TODO: add PostgresQuizRepository when quiz persistence is needed
     return _memory_quiz_repository
+
+
+def get_ai_provider(settings: Settings = Depends(get_settings)) -> AIProvider:
+    if not settings.gemini_api_key:
+        raise ServiceUnavailableAppError(
+            "AI provider is not configured.",
+            details={"reason": "NICHE_GEMINI_API_KEY is not set."},
+        )
+    return GeminiAdapter(
+        api_key=settings.gemini_api_key,
+        model=settings.gemini_model,
+        timeout_seconds=settings.ai_request_timeout_seconds,
+    )
+
+
+def get_blog_post_repo(settings: Settings = Depends(get_settings)) -> BlogPostRepository:
+    # TODO: add PostgresBlogPostRepository when blog post persistence is needed
+    return _memory_blog_post_repository
+
+
+def get_blog_post_service(
+    repo: BlogPostRepository = Depends(get_blog_post_repo),
+    settings: Settings = Depends(get_settings),
+) -> BlogPostService:
+    return BlogPostService(repo=repo, settings=settings)
+
+
+def get_session_bundle_repository(settings: Settings = Depends(get_settings)) -> SessionBundleRepository:
+    # TODO: add PostgresSessionBundleRepository when session bundle persistence is needed
+    return _memory_session_bundle_repository
+
+
+def get_profile_repo() -> ProfileRepository:
+    return _memory_profile_repository
+
+
+def get_profile_service(
+    repo: ProfileRepository = Depends(get_profile_repo),
+    settings: Settings = Depends(get_settings),
+) -> ProfileService:
+    return ProfileService(repo=repo, settings=settings)
+
+
+def get_upload_service(settings: Settings = Depends(get_settings)) -> UploadService:
+    return UploadService(settings=settings)
 
 
 def reset_repository_backends() -> None:

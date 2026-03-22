@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     session_list_max_limit: int = 50
     highlight_list_default_limit: int = 20
     highlight_list_max_limit: int = 50
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-1.5-flash"
+    ai_request_timeout_seconds: int = 30
     storage_public_base_url: str = "https://storage.niche.local"
     cors_allow_origins: tuple[str, ...] = Field(
         default=("http://localhost:8081", "http://127.0.0.1:8081"),
