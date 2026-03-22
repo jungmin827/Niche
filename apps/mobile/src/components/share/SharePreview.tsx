@@ -1,15 +1,11 @@
 import { ShareModel } from '../../features/share/types';
-import ShareTemplateA from './ShareTemplateA';
-import ShareTemplateB from './ShareTemplateB';
+import NikeTemplate from './NikeTemplate';
 
 type Props = {
   model: ShareModel;
+  hasBackground?: boolean;
 };
 
-export default function SharePreview({ model }: Props) {
-  if (model.templateCode === 'mono_story_v2') {
-    return <ShareTemplateB model={model} />;
-  }
-
-  return <ShareTemplateA model={model} />;
+export default function SharePreview({ model, hasBackground = false }: Props) {
+  return <NikeTemplate model={model} hasBackground={hasBackground} />;
 }

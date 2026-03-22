@@ -14,7 +14,7 @@ const variantClassMap: Record<Variant, string> = {
   body: 'text-[16px] leading-[24px] font-normal',
   bodySmall: 'text-[14px] leading-[20px] font-normal',
   caption: 'text-[12px] leading-[18px] font-normal',
-  button: 'text-[16px] leading-[20px] font-medium',
+  button: 'text-[15px] leading-[20px] font-bold',
 };
 
 const colorClassMap: Record<Color, string> = {
