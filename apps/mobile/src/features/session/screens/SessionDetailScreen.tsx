@@ -69,12 +69,7 @@ export default function SessionDetailScreen() {
                 ) : null}
                 <AppButton
                   label="하이라이트 만들기"
-                  onPress={() =>
-                    router.push({
-                      pathname: routes.sharePreviewModal,
-                      params: { sessionId },
-                    })
-                  }
+                  onPress={() => router.push(routes.sharePreviewModal(sessionId ?? ''))}
                 />
               </View>
             ) : (

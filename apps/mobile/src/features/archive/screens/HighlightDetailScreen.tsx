@@ -90,10 +90,7 @@ export default function HighlightDetailScreen() {
               disabled={!data.highlight.sessionId}
               onPress={() =>
                 data.highlight.sessionId
-                  ? router.push({
-                      pathname: routes.sharePreviewModal,
-                      params: { sessionId: data.highlight.sessionId },
-                    })
+                  ? router.push(routes.sharePreviewModal(data.highlight.sessionId))
                   : undefined
               }
             />
