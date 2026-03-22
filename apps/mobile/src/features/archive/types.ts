@@ -1,3 +1,4 @@
+import { BlogPostListItem } from '../blog/types';
 import { Highlight } from '../share/types';
 
 export type ArchiveProfile = {
@@ -23,7 +24,7 @@ export type ArchiveResponse = {
   profile: ArchiveProfile;
   stats: ArchiveStats;
   blogPosts: {
-    items: [];
+    items: BlogPostListItem[];
     nextCursor: string | null;
     hasNext: boolean;
   };

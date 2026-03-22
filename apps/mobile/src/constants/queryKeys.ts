@@ -7,4 +7,13 @@ export const queryKeys = {
   archiveMe: ['archive', 'me'] as const,
   highlightDetail: (highlightId: string) => ['highlight', highlightId] as const,
   myHighlights: ['highlights', 'me'] as const,
+  blogList: ['blog', 'list'] as const,
+  blogDetail: (postId: string) => ['blog', postId] as const,
+  quizJob: (jobId: string) => ['quiz', 'job', jobId] as const,
+  quizDetail: (quizId: string) => ['quiz', 'detail', quizId] as const,
+  quizAttempt: (quizId: string, attemptId: string) => ['quiz', 'attempt', quizId, attemptId] as const,
+  highlightSessionQuizResult: (sessionId: string) => ['highlight', 'quiz-result', sessionId] as const,
+  highlight: {
+    list: ['highlight', 'list'] as const,
+  },
 } as const;

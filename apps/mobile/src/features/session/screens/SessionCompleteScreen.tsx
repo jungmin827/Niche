@@ -72,7 +72,7 @@ export default function SessionCompleteScreen() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top', 'bottom']}>
         <View style={{ flex: 1, padding: 32 }}>
-          <AppText variant="body">완료한 세션을 찾을 수 없습니다.</AppText>
+          <AppText variant="body">Session not found.</AppText>
         </View>
       </SafeAreaView>
     );
@@ -102,22 +102,22 @@ export default function SessionCompleteScreen() {
         {/* Topic */}
         <AppText
           variant="caption"
-          style={{ color: '#aaa', textAlign: 'center', marginBottom: 32, fontSize: 13 }}
+          style={{ color: '#aaa', textAlign: 'center', marginBottom: 32, fontSize: 13, letterSpacing: 0.5 }}
         >
-          {session?.topic ? `Topic: ${session.topic}` : ''}
+          {session?.topic ?? ''}
         </AppText>
 
         {/* Memo textarea */}
         <TextInput
           value={memo}
           onChangeText={setMemo}
-          placeholder="Briefly note what you learned..."
+          placeholder="지금 떠오르는 생각을 적어보세요."
           placeholderTextColor="#ccc"
           multiline
           style={{
             minHeight: 120,
             borderWidth: 1,
-            borderColor: '#d0d0d0',
+            borderColor: '#D9D9D4',
             padding: 16,
             fontSize: 14,
             lineHeight: 22,
@@ -131,19 +131,19 @@ export default function SessionCompleteScreen() {
         {quizPhase === 'idle' && (
           <View style={{ gap: 12 }}>
             <AppButton
-              label="Let's Check"
-              onPress={handleLetsCheck}
-            />
-            <AppButton
-              label="Save to Archive"
-              variant="secondary"
+              label={noteMutation.isPending ? 'Saving...' : 'Save & Archive'}
               disabled={noteMutation.isPending}
               onPress={() => saveNoteAndNavigate('share')}
             />
+            <AppButton
+              label="Reflect"
+              variant="secondary"
+              onPress={handleLetsCheck}
+            />
             {hasMoreSessions && (
               <AppButton
-                label={`다음 세션 시작 (${completedSessionCount}/${plannedSessionCount})`}
-                variant="secondary"
+                label={`Next Session (${completedSessionCount}/${plannedSessionCount})`}
+                variant="ghost"
                 onPress={() => saveNoteAndNavigate('nextSession')}
               />
             )}
@@ -154,14 +154,14 @@ export default function SessionCompleteScreen() {
           <View style={{ alignItems: 'center', gap: 12, paddingVertical: 24 }}>
             <ActivityIndicator color="#000" />
             <AppText variant="bodySmall" style={{ color: '#888' }}>
-              AI 회고 문제를 만드는 중입니다...
+              Generating reflection prompt...
             </AppText>
           </View>
         )}
 
         {quizPhase === 'question' && (
           <View style={{ gap: 16 }}>
-            <AppText variant="caption" style={{ color: '#888', letterSpacing: 0.6 }}>
+            <AppText variant="caption" style={{ color: '#8A8A84', letterSpacing: 1 }}>
               REFLECT
             </AppText>
             <AppText variant="body" style={{ lineHeight: 24 }}>
@@ -170,13 +170,13 @@ export default function SessionCompleteScreen() {
             <TextInput
               value={quizAnswer}
               onChangeText={setQuizAnswer}
-              placeholder="답변을 입력하세요..."
+              placeholder="답변을 적어보세요."
               placeholderTextColor="#ccc"
               multiline
               style={{
                 minHeight: 100,
                 borderWidth: 1,
-                borderColor: '#d0d0d0',
+                borderColor: '#D9D9D4',
                 padding: 16,
                 fontSize: 14,
                 lineHeight: 22,
@@ -196,7 +196,7 @@ export default function SessionCompleteScreen() {
           <View style={{ alignItems: 'center', gap: 12, paddingVertical: 24 }}>
             <ActivityIndicator color="#000" />
             <AppText variant="bodySmall" style={{ color: '#888' }}>
-              채점 중입니다...
+              Scoring...
             </AppText>
           </View>
         )}
@@ -206,13 +206,13 @@ export default function SessionCompleteScreen() {
             <View
               style={{
                 borderWidth: 1,
-                borderColor: '#e0e0e0',
+                borderColor: '#D9D9D4',
                 padding: 20,
                 gap: 8,
               }}
             >
-              <AppText variant="caption" style={{ color: '#888' }}>
-                AI SCORE
+              <AppText variant="caption" style={{ color: '#8A8A84', letterSpacing: 0.8 }}>
+                Score
               </AppText>
               <AppText
                 variant="hero"
@@ -225,14 +225,14 @@ export default function SessionCompleteScreen() {
               </AppText>
             </View>
             <AppButton
-              label="Save to Archive"
+              label={noteMutation.isPending ? 'Saving...' : 'Save & Archive'}
               disabled={noteMutation.isPending}
               onPress={() => saveNoteAndNavigate('share')}
             />
             {hasMoreSessions && (
               <AppButton
-                label={`다음 세션 시작 (${completedSessionCount}/${plannedSessionCount})`}
-                variant="secondary"
+                label={`Next Session (${completedSessionCount}/${plannedSessionCount})`}
+                variant="ghost"
                 onPress={() => saveNoteAndNavigate('nextSession')}
               />
             )}

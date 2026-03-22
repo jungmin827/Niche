@@ -9,4 +9,14 @@ export const routes = {
   sharePreviewModal: '/(modals)/share-preview',
   archiveHome: '/(tabs)/archive',
   archiveHighlightDetail: (highlightId: string) => `/(tabs)/archive/highlight/${highlightId}`,
+  blogHome: '/(tabs)/blog',
+  blogDetail: (postId: string) => `/(tabs)/blog/${postId}`,
+  blogCompose: '/(modals)/blog-compose',
+  quizLoading: '/(modals)/quiz-loading',
+  quizAnswer: '/(modals)/quiz-answer',
+  quizResult: '/(modals)/quiz-result',
+  highlightCreate: '/(modals)/highlight-create' as const,
+  highlightSessionPicker: '/(modals)/highlight-session-picker' as const,
+  highlightViewer: (highlightId: string) =>
+    ({ pathname: '/(modals)/highlight-viewer' as const, params: { highlightId } }),
 } as const;

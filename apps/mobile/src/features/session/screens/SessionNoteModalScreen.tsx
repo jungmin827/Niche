@@ -6,15 +6,16 @@ import AppButton from '../../../components/ui/AppButton';
 import AppCard from '../../../components/ui/AppCard';
 import AppText from '../../../components/ui/AppText';
 import SessionNoteForm from '../../../components/session/SessionNoteForm';
-import { routes } from '../../../constants/routes';
 import { toApiError } from '../../../lib/error';
 import { useSessionDetailQuery, useUpsertSessionNoteMutation } from '../hooks';
 import { readSessionNoteDraft } from '../utils';
+import { useCreateQuizJobMutation } from '../../quiz/hooks';
 
 export default function SessionNoteModalScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId?: string }>();
   const detailQuery = useSessionDetailQuery(sessionId ?? '');
   const noteMutation = useUpsertSessionNoteMutation(sessionId ?? '');
+  const createQuizJobMutation = useCreateQuizJobMutation();
   const [draft, setDraft] = useState<{ summary: string; insight: string } | null>(null);
 
   useEffect(() => {
@@ -68,10 +69,15 @@ export default function SessionNoteModalScreen() {
               insight: values.insight,
             });
 
-            router.replace({
-              pathname: routes.sharePreviewModal,
-              params: { sessionId },
-            });
+            try {
+              const { job } = await createQuizJobMutation.mutateAsync(sessionId);
+              router.replace({
+                pathname: '/(modals)/quiz-loading',
+                params: { jobId: job.jobId, sessionId },
+              });
+            } catch {
+              router.replace('/(tabs)/session');
+            }
           }}
           sessionId={sessionId}
         />

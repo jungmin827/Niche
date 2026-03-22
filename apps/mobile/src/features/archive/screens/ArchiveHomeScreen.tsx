@@ -1,5 +1,6 @@
+import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import ArchiveHero from '../../../components/archive/ArchiveHero';
 import HighlightCard from '../../../components/archive/HighlightCard';
 import Screen from '../../../components/layout/Screen';
@@ -24,21 +25,21 @@ export default function ArchiveHomeScreen() {
   return (
     <Screen scroll>
       <TopBar
-        title="아카이브"
-        subtitle="내 세계가 정리되어 남는 곳입니다."
-        leadingLabel="로그아웃"
+        title="Archive"
+        subtitle="Your world, curated."
+        leadingLabel="Sign out"
         onLeadingPress={handleSignOut}
       />
 
       {archiveQuery.isLoading ? (
-        <AppText variant="body">아카이브를 불러오는 중입니다.</AppText>
+        <AppText variant="body">Loading archive...</AppText>
       ) : archiveQuery.isError ? (
         <AppCard className="gap-4 bg-[#F6F6F4]">
-          <AppText variant="title">아카이브를 불러오지 못했습니다.</AppText>
+          <AppText variant="title">Couldn't load archive.</AppText>
           <AppText variant="bodySmall" className="text-[#555555]">
             {toApiError(archiveQuery.error).message}
           </AppText>
-          <AppButton label="다시 시도" variant="secondary" onPress={() => archiveQuery.refetch()} />
+          <AppButton label="Retry" variant="secondary" onPress={() => archiveQuery.refetch()} />
         </AppCard>
       ) : archive ? (
         <View className="gap-8">
@@ -50,45 +51,75 @@ export default function ArchiveHomeScreen() {
           />
 
           <View className="gap-4">
-            <AppText variant="title">하이라이트</AppText>
-            {archive.highlights.items.length > 0 ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View className="flex-row gap-5 pr-6">
-                  {archive.highlights.items.map((highlight) => (
-                    <HighlightCard
-                      key={highlight.id}
-                      highlight={highlight}
-                      onPress={() => router.push(routes.archiveHighlightDetail(highlight.id))}
-                    />
-                  ))}
-                </View>
-              </ScrollView>
+            <AppText variant="title">Highlights</AppText>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View className="flex-row gap-5 pr-6" style={{ paddingLeft: 20 }}>
+                <Pressable
+                  onPress={() => router.push(routes.highlightSessionPicker)}
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: 32,
+                    borderWidth: 1,
+                    borderColor: '#D9D9D4',
+                    borderStyle: 'dashed',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#FAFAFA',
+                  }}
+                >
+                  <Feather name="plus" size={20} color="#8A8A84" />
+                </Pressable>
+                {archive.highlights.items.map((highlight) => (
+                  <HighlightCard
+                    key={highlight.id}
+                    highlight={highlight}
+                    onPress={() => router.push(routes.highlightViewer(highlight.id))}
+                  />
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+
+          <View className="gap-4">
+            <AppText variant="title">Blog</AppText>
+            {archive.blogPosts.items.length > 0 ? (
+              archive.blogPosts.items.map((post) => (
+                <Pressable
+                  key={post.id}
+                  onPress={() => router.push(routes.blogDetail(post.id))}
+                  style={{
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#D9D9D4',
+                    paddingVertical: 16,
+                  }}
+                >
+                  <AppText variant="body" numberOfLines={2}>{post.title}</AppText>
+                  {post.excerpt ? (
+                    <AppText
+                      variant="bodySmall"
+                      style={{ color: '#8A8A84', marginTop: 4 }}
+                      numberOfLines={2}
+                    >
+                      {post.excerpt}
+                    </AppText>
+                  ) : null}
+                </Pressable>
+              ))
             ) : (
-              <View className="rounded-[20px] border border-[#D9D9D4] bg-[#F6F6F4] px-5 py-6">
+              <View className="rounded-[20px] border border-dashed border-[#D9D9D4] bg-[#F6F6F4] px-5 py-6">
                 <AppText variant="bodySmall" className="text-[#555555]">
-                  아직 남겨둔 기록이 없어요.
+                  No posts yet.
                 </AppText>
                 <AppText variant="bodySmall" className="mt-2 text-[#555555]">
-                  세션을 마치고 글이나 하이라이트를 남겨보세요.
+                  Write down a passing thought.
                 </AppText>
               </View>
             )}
           </View>
-
-          <View className="gap-4">
-            <AppText variant="title">글</AppText>
-            <View className="rounded-[20px] border border-dashed border-[#D9D9D4] bg-[#F6F6F4] px-5 py-6">
-              <AppText variant="bodySmall" className="text-[#555555]">
-                아직 쓴 글이 없어요.
-              </AppText>
-              <AppText variant="bodySmall" className="mt-2 text-[#555555]">
-                오늘 스쳐간 생각부터 적어보세요.
-              </AppText>
-            </View>
-          </View>
         </View>
       ) : (
-        <AppText variant="body">아카이브를 준비하는 중입니다.</AppText>
+        <AppText variant="body">Preparing your archive...</AppText>
       )}
     </Screen>
   );

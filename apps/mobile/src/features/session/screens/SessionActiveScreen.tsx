@@ -79,8 +79,8 @@ export default function SessionActiveScreen() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top', 'bottom']}>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 }}>
-          <AppText variant="body">진행 중인 세션이 없습니다.</AppText>
-          <AppButton label="세션으로" onPress={() => router.replace(routes.sessionHome)} />
+          <AppText variant="body">No active session.</AppText>
+          <AppButton label="Back to Sessions" onPress={() => router.replace(routes.sessionHome)} />
         </View>
       </SafeAreaView>
     );
@@ -100,10 +100,10 @@ export default function SessionActiveScreen() {
   };
 
   const handleComplete = () => {
-    Alert.alert('세션을 종료할까요?', '지금까지의 집중 시간이 기록됩니다.', [
-      { text: '계속하기', style: 'cancel' },
+    Alert.alert('End session?', 'Your focus time so far will be saved.', [
+      { text: 'Keep going', style: 'cancel' },
       {
-        text: '종료',
+        text: 'End',
         onPress: async () => {
           if (!activeSessionId || !activeSessionStartedAt) return;
           if (memo.trim().length > 0) {
@@ -155,7 +155,7 @@ export default function SessionActiveScreen() {
           {/* Topic */}
           <AppText
             variant="caption"
-            style={{ color: '#aaa', textAlign: 'center', marginBottom: 40, fontSize: 12 }}
+            style={{ color: '#aaa', textAlign: 'center', marginBottom: 40, fontSize: 12, letterSpacing: 0.5 }}
           >
             {activeSessionTopic ?? ''}
           </AppText>
@@ -260,13 +260,13 @@ export default function SessionActiveScreen() {
           <View style={{ gap: 10 }}>
             {quizPhase === 'idle' && (
               <AppButton
-                label="Let's Check"
+                label="Reflect"
                 variant="secondary"
                 onPress={() => setQuizPhase('question')}
               />
             )}
             <AppButton
-              label={noteMutation.isPending ? '저장 중...' : 'Archive'}
+              label={noteMutation.isPending ? 'Saving...' : 'Save & Archive'}
               disabled={noteMutation.isPending}
               onPress={handleArchive}
             />
@@ -324,7 +324,7 @@ export default function SessionActiveScreen() {
           {/* Stop / Complete */}
           <View style={{ marginTop: 28, width: '100%', flexDirection: 'row', gap: 10 }}>
             <AppButton
-              label={isPaused ? 'Resume' : 'Stop'}
+              label={isPaused ? 'Resume' : 'Pause'}
               variant={isPaused ? 'primary' : 'ghost'}
               fullWidth={false}
               className="flex-1"
@@ -332,7 +332,7 @@ export default function SessionActiveScreen() {
               onPress={handleTogglePause}
             />
             <AppButton
-              label={completeMutation.isPending ? '종료 중...' : 'Complete'}
+              label={completeMutation.isPending ? 'Ending...' : 'End Session'}
               variant={isPaused ? 'ghost' : 'primary'}
               fullWidth={false}
               className="flex-1"
@@ -363,7 +363,7 @@ export default function SessionActiveScreen() {
             }}
           >
             <AppText variant="bodySmall" style={{ color: '#ccc' }}>
-              집중이 끝나면 기록할 수 있어요.
+              Available after session ends.
             </AppText>
           </View>
         </View>

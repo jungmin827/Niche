@@ -63,10 +63,10 @@ export default function SessionStartCard({
               color="inverse"
               style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, marginBottom: 2 }}
             >
-              오늘의 누적
+              Today
             </AppText>
             <AppText variant="title" color="inverse" style={{ color: '#fff' }}>
-              {todayFocusMinutes}분
+              {todayFocusMinutes}m
             </AppText>
           </View>
           <View style={{ alignItems: 'center' }}>
@@ -75,7 +75,7 @@ export default function SessionStartCard({
               color="inverse"
               style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, marginBottom: 2 }}
             >
-              랭크
+              Rank
             </AppText>
             <AppText variant="title" color="inverse" style={{ color: '#fff' }}>
               {rankLabel}
@@ -87,10 +87,10 @@ export default function SessionStartCard({
               color="inverse"
               style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, marginBottom: 2 }}
             >
-              streak
+              Streak
             </AppText>
             <AppText variant="title" color="inverse" style={{ color: '#fff' }}>
-              {streakDays > 0 ? `${streakDays}일` : '—'}
+              {streakDays > 0 ? `${streakDays}d` : '—'}
             </AppText>
           </View>
         </View>
@@ -109,7 +109,7 @@ export default function SessionStartCard({
           <TextInput
             value={topic}
             onChangeText={setTopic}
-            placeholder={hasActiveSession ? '진행 중인 세션이 있습니다.' : 'What is your topic today?'}
+            placeholder={hasActiveSession ? 'Session in progress.' : 'What is your topic today?'}
             placeholderTextColor="rgba(255,255,255,0.35)"
             editable={!hasActiveSession}
             style={{
@@ -141,7 +141,6 @@ export default function SessionStartCard({
                   style={{
                     width: 32,
                     height: 32,
-                    borderRadius: 16,
                     borderWidth: 1,
                     borderColor: 'rgba(255,255,255,0.3)',
                     alignItems: 'center',
@@ -163,7 +162,6 @@ export default function SessionStartCard({
                   style={{
                     width: 32,
                     height: 32,
-                    borderRadius: 16,
                     borderWidth: 1,
                     borderColor: 'rgba(255,255,255,0.3)',
                     alignItems: 'center',
@@ -195,7 +193,6 @@ export default function SessionStartCard({
                   style={{
                     width: 32,
                     height: 32,
-                    borderRadius: 16,
                     borderWidth: 1,
                     borderColor: 'rgba(255,255,255,0.3)',
                     alignItems: 'center',
@@ -217,7 +214,6 @@ export default function SessionStartCard({
                   style={{
                     width: 32,
                     height: 32,
-                    borderRadius: 16,
                     borderWidth: 1,
                     borderColor: 'rgba(255,255,255,0.3)',
                     alignItems: 'center',

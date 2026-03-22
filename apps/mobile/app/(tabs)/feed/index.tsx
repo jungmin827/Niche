@@ -1,3 +1,4 @@
+import { Feather } from '@expo/vector-icons';
 import { FlatList, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FeedCard from '../../../src/components/feed/FeedCard';
@@ -66,13 +67,13 @@ export default function HomeScreen() {
           paddingHorizontal: 24,
           paddingVertical: 16,
           borderBottomWidth: 1,
-          borderBottomColor: '#f0f0f0',
+          borderBottomColor: '#D9D9D4',
         }}
       >
         <AppText variant="title" style={{ fontSize: 20, letterSpacing: -0.5 }}>
           NichE
         </AppText>
-        <AppText variant="body" style={{ fontSize: 18 }}>⌕</AppText>
+        <Feather name="search" size={20} color="#111" />
       </View>
 
       {/* Feed */}
@@ -90,7 +91,7 @@ export default function HomeScreen() {
             bookmarks={item.bookmarks}
           />
         )}
-        contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 24 }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 28, paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       />
     </SafeAreaView>
