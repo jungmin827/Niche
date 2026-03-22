@@ -1,5 +1,6 @@
 import { View, Pressable } from 'react-native';
 import { router } from 'expo-router';
+import { setTemporaryAccessToken } from '../../src/api/auth';
 import AppText from '../../src/components/ui/AppText';
 
 export default function SignInScreen() {
@@ -12,7 +13,10 @@ export default function SignInScreen() {
 
       <Pressable
         className="mt-10 rounded-2xl border border-black px-5 py-4"
-        onPress={() => router.replace('/(tabs)/session')}
+        onPress={async () => {
+          await setTemporaryAccessToken();
+          router.replace('/(tabs)/session');
+        }}
       >
         <AppText variant="button">임시 진입</AppText>
       </Pressable>
