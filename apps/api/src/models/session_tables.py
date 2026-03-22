@@ -2,11 +2,16 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import sqlalchemy as sa
 from sqlalchemy import Boolean, DateTime, Integer, Text, UniqueConstraint, func, text
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.models.base import Base, SessionStatusDBEnum, VisibilityDBEnum
+
+_use_values = lambda x: [e.value for e in x]  # noqa: E731
+_session_status_col = sa.Enum(SessionStatusDBEnum, name="session_status_enum", create_type=False, values_callable=_use_values)
+_visibility_col = sa.Enum(VisibilityDBEnum, name="visibility_enum", create_type=False, values_callable=_use_values)
 
 
 class SessionTable(Base):
@@ -20,8 +25,8 @@ class SessionTable(Base):
     actual_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    status: Mapped[SessionStatusDBEnum] = mapped_column(nullable=False)
-    visibility: Mapped[VisibilityDBEnum] = mapped_column(nullable=False, server_default="public")
+    status: Mapped[SessionStatusDBEnum] = mapped_column(_session_status_col, nullable=False)
+    visibility: Mapped[VisibilityDBEnum] = mapped_column(_visibility_col, nullable=False, server_default="public")
     is_highlight_eligible: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
@@ -75,7 +80,7 @@ class SessionBundleTable(Base):
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     ended_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     total_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
-    visibility: Mapped[VisibilityDBEnum] = mapped_column(nullable=False, server_default="public")
+    visibility: Mapped[VisibilityDBEnum] = mapped_column(_visibility_col, nullable=False, server_default="public")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

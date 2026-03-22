@@ -9,7 +9,13 @@ import AppText from '../../../components/ui/AppText';
 import AppCard from '../../../components/ui/AppCard';
 import { toApiError } from '../../../lib/error';
 import { routes } from '../../../constants/routes';
+import { supabase } from '../../../lib/supabase';
 import { useArchiveQuery } from '../hooks';
+
+async function handleSignOut() {
+  await supabase?.auth.signOut();
+  router.replace('/(auth)/welcome');
+}
 
 export default function ArchiveHomeScreen() {
   const archiveQuery = useArchiveQuery();
@@ -17,7 +23,12 @@ export default function ArchiveHomeScreen() {
 
   return (
     <Screen scroll>
-      <TopBar title="아카이브" subtitle="내 세계가 정리되어 남는 곳입니다." />
+      <TopBar
+        title="아카이브"
+        subtitle="내 세계가 정리되어 남는 곳입니다."
+        leadingLabel="로그아웃"
+        onLeadingPress={handleSignOut}
+      />
 
       {archiveQuery.isLoading ? (
         <AppText variant="body">아카이브를 불러오는 중입니다.</AppText>

@@ -8,8 +8,8 @@ type Props = PressableProps & {
 };
 
 const variantClassMap = {
-  primary: 'bg-black border border-black',
-  secondary: 'bg-[#F6F6F4] border border-[#111111]',
+  primary: 'bg-[#111111] border border-[#111111]',
+  secondary: 'bg-white border border-[#111111]',
   ghost: 'bg-transparent border border-[#D9D9D4]',
 } as const;
 
@@ -30,7 +30,7 @@ export default function AppButton({
   return (
     <Pressable
       accessibilityRole="button"
-      className={`min-h-[52px] rounded-[16px] px-5 py-[15px] ${variantClassMap[variant]} ${
+      className={`min-h-[52px] rounded-[4px] px-5 py-[14px] ${variantClassMap[variant]} ${
         fullWidth ? 'w-full' : ''
       } ${disabled ? 'opacity-50' : ''} ${className}`}
       disabled={disabled}

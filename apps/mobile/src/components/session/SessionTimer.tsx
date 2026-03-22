@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { formatClock } from '../../lib/date';
 import AppText from '../ui/AppText';
@@ -8,6 +8,7 @@ type Props = {
   plannedMinutes: number;
   paused?: boolean;
   mode?: 'remaining' | 'elapsed';
+  onExpire?: () => void;
 };
 
 export default function SessionTimer({
@@ -15,8 +16,10 @@ export default function SessionTimer({
   plannedMinutes,
   paused = false,
   mode = 'remaining',
+  onExpire,
 }: Props) {
   const [now, setNow] = useState(() => Date.now());
+  const expiredRef = useRef(false);
 
   useEffect(() => {
     if (paused) return undefined;
@@ -31,6 +34,13 @@ export default function SessionTimer({
   const elapsedSeconds = Math.floor((now - new Date(startedAt).getTime()) / 1000);
   const totalSeconds = plannedMinutes * 60;
   const remainingSeconds = Math.max(totalSeconds - elapsedSeconds, 0);
+
+  useEffect(() => {
+    if (!expiredRef.current && elapsedSeconds >= totalSeconds && onExpire) {
+      expiredRef.current = true;
+      onExpire();
+    }
+  }, [elapsedSeconds, totalSeconds, onExpire]);
 
   const displaySeconds = mode === 'elapsed' ? elapsedSeconds : remainingSeconds;
 

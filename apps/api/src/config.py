@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     api_version: str = "v1"
     session_repository_backend: Literal["memory", "postgres"] = "memory"
     database_url: str | None = None
+    supabase_url: str | None = None  # https://<project-ref>.supabase.co
     supabase_jwt_secret: str | None = None
     default_session_visibility: Literal["public", "private"] = "public"
     default_highlight_visibility: Literal["public", "private"] = "public"

@@ -27,8 +27,10 @@ export default function SessionStartCard({
   onSubmit,
   onResumeSession,
 }: Props) {
+  const ALLOWED_MINUTES = [15, 30, 45, 60] as const;
   const [topic, setTopic] = useState('');
-  const [plannedMinutes, setPlannedMinutes] = useState(15);
+  const [minutesIndex, setMinutesIndex] = useState(0); // index into ALLOWED_MINUTES
+  const plannedMinutes = ALLOWED_MINUTES[minutesIndex];
   const [plannedSessionCount, setPlannedSessionCount] = useState(1);
 
   const canPlay = hasActiveSession || (!isSubmitting && topic.trim().length > 0);
@@ -135,7 +137,7 @@ export default function SessionStartCard({
               </AppText>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
                 <Pressable
-                  onPress={() => setPlannedMinutes((m) => Math.max(5, m - 5))}
+                  onPress={() => setMinutesIndex((i) => Math.max(0, i - 1))}
                   style={{
                     width: 32,
                     height: 32,
@@ -157,7 +159,7 @@ export default function SessionStartCard({
                   {plannedMinutes} mins
                 </AppText>
                 <Pressable
-                  onPress={() => setPlannedMinutes((m) => m + 5)}
+                  onPress={() => setMinutesIndex((i) => Math.min(ALLOWED_MINUTES.length - 1, i + 1))}
                   style={{
                     width: 32,
                     height: 32,

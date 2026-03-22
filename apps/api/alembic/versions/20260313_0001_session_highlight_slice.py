@@ -18,6 +18,7 @@ branch_labels = None
 depends_on = None
 
 
+# Used for explicit CREATE TYPE (with checkfirst guard)
 visibility_enum = postgresql.ENUM("public", "private", name="visibility_enum")
 session_status_enum = postgresql.ENUM(
     "active",
@@ -29,6 +30,15 @@ highlight_source_type_enum = postgresql.ENUM(
     "session",
     "session_bundle",
     name="highlight_source_type_enum",
+)
+
+# Used inside op.create_table — create_type=False prevents duplicate CREATE TYPE
+_vis = postgresql.ENUM("public", "private", name="visibility_enum", create_type=False)
+_status = postgresql.ENUM(
+    "active", "completed", "cancelled", name="session_status_enum", create_type=False
+)
+_source = postgresql.ENUM(
+    "session", "session_bundle", name="highlight_source_type_enum", create_type=False
 )
 
 
@@ -47,7 +57,7 @@ def upgrade() -> None:
         sa.Column("started_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("ended_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("total_minutes", sa.Integer(), nullable=False),
-        sa.Column("visibility", visibility_enum, nullable=False, server_default="public"),
+        sa.Column("visibility", _vis, nullable=False, server_default="public"),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
@@ -73,8 +83,8 @@ def upgrade() -> None:
         sa.Column("actual_minutes", sa.Integer(), nullable=True),
         sa.Column("started_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("ended_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("status", session_status_enum, nullable=False),
-        sa.Column("visibility", visibility_enum, nullable=False, server_default="public"),
+        sa.Column("status", _status, nullable=False),
+        sa.Column("visibility", _vis, nullable=False, server_default="public"),
         sa.Column("is_highlight_eligible", sa.Boolean(), nullable=False, server_default=sa.false()),
         sa.Column("source", sa.Text(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
@@ -128,7 +138,7 @@ def upgrade() -> None:
         "highlights",
         sa.Column("id", postgresql.UUID(as_uuid=False), primary_key=True, nullable=False),
         sa.Column("profile_id", postgresql.UUID(as_uuid=False), nullable=False),
-        sa.Column("source_type", highlight_source_type_enum, nullable=False),
+        sa.Column("source_type", _source, nullable=False),
         sa.Column(
             "session_id",
             postgresql.UUID(as_uuid=False),
@@ -146,7 +156,7 @@ def upgrade() -> None:
         sa.Column("rendered_image_path", sa.Text(), nullable=False),
         sa.Column("source_photo_path", sa.Text(), nullable=True),
         sa.Column("template_code", sa.Text(), nullable=True),
-        sa.Column("visibility", visibility_enum, nullable=False, server_default="public"),
+        sa.Column("visibility", _vis, nullable=False, server_default="public"),
         sa.Column("published_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),

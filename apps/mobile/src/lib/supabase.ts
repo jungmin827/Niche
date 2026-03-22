@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
 import { env } from './env';
 
 export const supabase =
@@ -9,7 +10,8 @@ export const supabase =
           storage: AsyncStorage,
           autoRefreshToken: true,
           persistSession: true,
-          detectSessionInUrl: false,
+          // web에서는 URL hash의 access_token을 파싱해야 Magic Link가 작동함
+          detectSessionInUrl: Platform.OS === 'web',
         },
       })
     : null;
