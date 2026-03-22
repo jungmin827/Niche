@@ -97,16 +97,10 @@ export default function BlogHomeScreen() {
           style={{ flex: 1 }}
         />
       ) : (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <AppText variant="bodySmall" style={{ color: '#8A8A84' }}>
             No posts yet.
           </AppText>
-          <AppButton
-            label="Write your first post"
-            variant="secondary"
-            fullWidth={false}
-            onPress={() => router.push(routes.blogCompose)}
-          />
         </View>
       )}
     </SafeAreaView>

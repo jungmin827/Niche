@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { Animated, Image, View } from 'react-native';
+import { getMyProfile } from '../src/api/profile';
 import { useAuthSession } from '../src/hooks/useAuthSession';
 
 const ICON = require('../assets/nicheicon.jpg');
@@ -23,9 +24,18 @@ export default function SplashScreen() {
     navigated.current = true;
 
     // 아이콘이 충분히 보인 후 이동
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       if (state === 'authenticated') {
-        router.replace('/(tabs)/session');
+        try {
+          const { profile } = await getMyProfile();
+          if (profile.onboardingCompleted) {
+            router.replace('/(tabs)/session');
+          } else {
+            router.replace('/(auth)/onboarding');
+          }
+        } catch {
+          router.replace('/(tabs)/session');
+        }
       } else {
         router.replace('/(auth)/welcome');
       }

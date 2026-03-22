@@ -49,7 +49,7 @@ export default function SignInScreen() {
       }
 
       clearActiveSession();
-      router.replace('/(tabs)/session');
+      router.replace('/(auth)/onboarding');
       return;
     }
 
@@ -74,7 +74,7 @@ export default function SignInScreen() {
     }
 
     clearActiveSession();
-    router.replace('/(tabs)/session');
+    router.replace('/(auth)/onboarding');
   };
 
   return (
