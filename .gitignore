@@ -1,6 +1,10 @@
 # mac
 .DS_Store
 
+# misc
+/archive
+/highlight
+
 # python
 __pycache__/
 *.pyc
