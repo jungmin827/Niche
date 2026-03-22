@@ -48,7 +48,7 @@ export default function HighlightCard({ highlight, session, note, onPress }: Pro
           {highlight.caption}
         </AppText>
         <AppText variant="caption" className="text-[#8A8A84]">
-          하이라이트
+          Highlight
         </AppText>
       </View>
     </Pressable>

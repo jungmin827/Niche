@@ -37,7 +37,7 @@ export default function AppButton({
       {...props}
     >
       <View className="items-center justify-center">
-        <AppText variant="button" color={textColorMap[variant]} className="tracking-[0.2px]">
+        <AppText variant="button" color={textColorMap[variant]} className="tracking-[0.8px] uppercase">
           {label}
         </AppText>
       </View>
