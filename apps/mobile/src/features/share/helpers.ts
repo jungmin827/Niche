@@ -3,7 +3,7 @@ import { Session, SessionNote } from '../session/types';
 import { HighlightTemplateCode, ShareModel } from './types';
 
 export function buildHighlightTitle(session: Session) {
-  return `${session.topic} ${session.actualMinutes ?? session.plannedMinutes}분`;
+  return session.topic;
 }
 
 export function buildHighlightCaption(note: SessionNote | null) {
@@ -15,8 +15,10 @@ export function buildShareModel(args: {
   note: SessionNote | null;
   templateCode: HighlightTemplateCode;
   rankLabel?: string;
+  quizScore?: number | null;
+  streakDays?: number;
 }): ShareModel {
-  const { session, note, templateCode, rankLabel = 'Surface' } = args;
+  const { session, note, templateCode, rankLabel = 'Surface', quizScore = null, streakDays = 0 } = args;
 
   return {
     sessionId: session.id,
@@ -28,5 +30,7 @@ export function buildShareModel(args: {
     rankLabel,
     noteSummary: note?.summary ?? '',
     noteInsight: note?.insight ?? '',
+    quizScore,
+    streakDays,
   };
 }

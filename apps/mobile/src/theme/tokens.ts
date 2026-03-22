@@ -4,6 +4,8 @@ import { shadows } from './shadows';
 import { spacing } from './spacing';
 import { typography } from './typography';
 
+export { colors, radius, shadows, spacing, typography };
+
 export const theme = {
   colors,
   radius,

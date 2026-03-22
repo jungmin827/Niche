@@ -20,4 +20,22 @@ export const colors = {
     inverse: '#FFFFFF',
   },
   overlay: 'rgba(0,0,0,0.4)',
+  overlayWhite: 'rgba(255,255,255,0.82)',
+  // Dark-background (black screen) token set
+  dark: {
+    bg: '#000000',
+    text: {
+      primary: '#FFFFFF',
+      secondary: 'rgba(255,255,255,0.65)',
+      muted: 'rgba(255,255,255,0.45)',
+      placeholder: 'rgba(255,255,255,0.35)',
+      hint: 'rgba(255,255,255,0.40)',
+    },
+    line: {
+      strong: 'rgba(255,255,255,0.80)',   // play button active border
+      input: 'rgba(255,255,255,0.25)',    // topic input bottom border
+      divider: 'rgba(255,255,255,0.10)',  // stepper section divider
+      disabled: 'rgba(255,255,255,0.20)', // play button inactive border
+    },
+  },
 } as const;

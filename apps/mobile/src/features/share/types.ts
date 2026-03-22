@@ -1,5 +1,5 @@
 export type HighlightSourceType = 'session' | 'sessionBundle';
-export type HighlightTemplateCode = 'mono_story_v1' | 'mono_story_v2';
+export type HighlightTemplateCode = 'mono_story_v1' | 'mono_story_v2' | 'nike_v1';
 export type HighlightVisibility = 'public' | 'private';
 
 export type HighlightAuthor = {
@@ -47,4 +47,6 @@ export type ShareModel = {
   rankLabel: string;
   noteSummary: string;
   noteInsight: string;
+  quizScore: number | null;
+  streakDays: number;
 };
