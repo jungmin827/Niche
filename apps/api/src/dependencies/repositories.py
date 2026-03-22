@@ -9,6 +9,7 @@ from src.config import Settings, get_settings
 from src.db import get_async_session_factory
 from src.exceptions import ServiceUnavailableAppError
 from src.repositories.blog_post_repo import BlogPostRepository, InMemoryBlogPostRepository
+from src.repositories.feed_post_repo import FeedPostRepository, InMemoryFeedPostRepository
 from src.repositories.highlight_repo import HighlightRepository, InMemoryHighlightRepository, PostgresHighlightRepository
 from src.repositories.profile_repo import InMemoryProfileRepository, ProfileRepository
 from src.repositories.quiz_job_repo import InMemoryQuizRepository, QuizRepository
@@ -22,6 +23,7 @@ _memory_session_repository = InMemorySessionRepository()
 _memory_highlight_repository = InMemoryHighlightRepository()
 _memory_quiz_repository = InMemoryQuizRepository()
 _memory_blog_post_repository = InMemoryBlogPostRepository()
+_memory_feed_post_repository = InMemoryFeedPostRepository()
 _memory_session_bundle_repository = InMemorySessionBundleRepository()
 _memory_profile_repository = InMemoryProfileRepository()
 logger = logging.getLogger("niche.repositories")
@@ -100,6 +102,11 @@ def get_ai_provider(settings: Settings = Depends(get_settings)) -> AIProvider:
 def get_blog_post_repo(settings: Settings = Depends(get_settings)) -> BlogPostRepository:
     # TODO: add PostgresBlogPostRepository when blog post persistence is needed
     return _memory_blog_post_repository
+
+
+def get_feed_post_repo(settings: Settings = Depends(get_settings)) -> FeedPostRepository:
+    # TODO: add PostgresFeedPostRepository when feed post persistence is needed
+    return _memory_feed_post_repository
 
 
 def get_blog_post_service(

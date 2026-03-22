@@ -1,14 +1,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Literal, Protocol
+
+# Determined by session.source field at quiz generation time.
+# technical : tech / code / engineering / paper → concept application questions
+# interest  : niche hobby/curiosity (default)  → discovery & insight questions
+# literary  : book / article / essay / prose   → resonance & feeling questions
+SessionMode = Literal["technical", "interest", "literary"]
 
 
 @dataclass
 class QuizQuestion:
-    sequence_no: int           # 1, 2, or 3
-    question_type: str         # "recall", "interpretation", "reflection"
-    intent_label: str          # "recall_summary", "meaning_interpretation", "personal_reflection"
+    sequence_no: int
+    question_type: str   # varies by SessionMode (see gemini_adapter.py)
+    intent_label: str
     prompt_text: str
 
 
@@ -37,6 +43,7 @@ class AIProvider(Protocol):
     async def generate_quiz(
         self,
         *,
+        session_mode: SessionMode,
         session_topic: str | None,
         session_subject: str | None,
         session_summary: str,
@@ -48,6 +55,7 @@ class AIProvider(Protocol):
     async def grade_quiz(
         self,
         *,
+        session_mode: SessionMode,
         session_summary: str,
         session_insight: str | None,
         questions: list[QuizQuestion],

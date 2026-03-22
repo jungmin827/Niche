@@ -2,29 +2,42 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from src.schemas.common import CamelModel, PageResponse
+from src.schemas.common import CamelModel
 
 
 class FeedAuthorDTO(CamelModel):
     id: str
     handle: str
     display_name: str
-    avatar_url: str | None = None
-    current_rank_code: str
 
 
-class FeedItemDTO(CamelModel):
+class FeedPostDTO(CamelModel):
     id: str
     author: FeedAuthorDTO
-    published_at: datetime
-    content: str | None = None
-    rendered_image_url: str | None = None
-    tag: str | None = None
-    likes: int = 0
-    bookmarks: int = 0
-    source_type: str
-    session_id: str | None = None
+    content: str
+    created_at: datetime
+    expires_at: datetime
+    comment_count: int = 0
 
 
-class FeedResponse(PageResponse[FeedItemDTO]):
-    pass
+class FeedPostListResponse(CamelModel):
+    items: list[FeedPostDTO]
+
+
+class CreateFeedPostRequest(CamelModel):
+    content: str  # max 50 enforced in service
+
+
+class FeedCommentDTO(CamelModel):
+    id: str
+    author: FeedAuthorDTO
+    content: str
+    created_at: datetime
+
+
+class FeedCommentListResponse(CamelModel):
+    items: list[FeedCommentDTO]
+
+
+class CreateFeedCommentRequest(CamelModel):
+    content: str  # max 20 enforced in service
