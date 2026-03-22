@@ -6,7 +6,10 @@ export const routes = {
   sessionComplete: '/(tabs)/session/complete',
   sessionDetail: (sessionId: string) => `/(tabs)/session/${sessionId}`,
   sessionNoteModal: '/(modals)/session-note',
-  sharePreviewModal: '/(modals)/share-preview',
+  sharePreviewModal: (sessionId: string, quizScore?: number) => ({
+    pathname: '/(modals)/share-preview' as const,
+    params: { sessionId, quizScore: quizScore?.toString() ?? '' },
+  }),
   archiveHome: '/(tabs)/archive',
   archiveHighlightDetail: (highlightId: string) => `/(tabs)/archive/highlight/${highlightId}`,
   blogHome: '/(tabs)/blog',
@@ -19,4 +22,8 @@ export const routes = {
   highlightSessionPicker: '/(modals)/highlight-session-picker' as const,
   highlightViewer: (highlightId: string) =>
     ({ pathname: '/(modals)/highlight-viewer' as const, params: { highlightId } }),
+  feedCompose: '/(modals)/feed-compose',
+  feedComments: (postId: string) => `/(modals)/feed-comments?postId=${postId}`,
+  profileEdit: (displayName: string) =>
+    `/(modals)/profile-edit?displayName=${encodeURIComponent(displayName)}`,
 } as const;

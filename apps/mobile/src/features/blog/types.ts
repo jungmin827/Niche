@@ -29,6 +29,7 @@ export type BlogPost = {
 
 export type BlogPostListItem = {
   id: string;
+  authorId: string;
   title: string;
   excerpt: string | null;
   coverImageUrl: string | null;

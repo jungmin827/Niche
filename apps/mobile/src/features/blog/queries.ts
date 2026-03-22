@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { getBlogPost, getMyBlogPosts } from '../../api/blog';
+import { getAllBlogPosts, getBlogPost } from '../../api/blog';
 import { queryKeys } from '../../constants/queryKeys';
 
 export function useBlogListQuery() {
   return useQuery({
     queryKey: queryKeys.blogList,
     queryFn: async () => {
-      const response = await getMyBlogPosts();
+      const response = await getAllBlogPosts();
       return response.items;
     },
   });

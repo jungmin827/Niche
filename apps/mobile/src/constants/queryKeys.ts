@@ -16,4 +16,6 @@ export const queryKeys = {
   highlight: {
     list: ['highlight', 'list'] as const,
   },
+  feedPosts: ['feed', 'posts'] as const,
+  feedComments: (postId: string) => ['feed', 'comments', postId] as const,
 } as const;
