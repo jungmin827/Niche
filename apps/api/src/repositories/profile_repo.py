@@ -9,6 +9,8 @@ from src.models.profile import ProfileRecord
 class ProfileRepository(Protocol):
     async def get_by_id(self, profile_id: str) -> ProfileRecord | None: ...
 
+    async def get_by_handle(self, handle: str) -> ProfileRecord | None: ...
+
     async def get_or_create(self, profile_id: str) -> ProfileRecord: ...
 
     async def update(self, profile_id: str, **fields: object) -> ProfileRecord: ...
@@ -20,6 +22,12 @@ class InMemoryProfileRepository:
 
     async def get_by_id(self, profile_id: str) -> ProfileRecord | None:
         return self._profiles.get(profile_id)
+
+    async def get_by_handle(self, handle: str) -> ProfileRecord | None:
+        for record in self._profiles.values():
+            if record.handle == handle:
+                return record
+        return None
 
     async def get_or_create(self, profile_id: str) -> ProfileRecord:
         if profile_id not in self._profiles:

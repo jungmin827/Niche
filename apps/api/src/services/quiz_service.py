@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from src import error_codes
-from src.ai.base import AIProvider, QuizQuestion
+from src.ai.base import AIProvider, QuizQuestion, SessionMode
 from src.exceptions import ConflictError, ForbiddenError, NotFoundError, ServiceUnavailableAppError, ValidationAppError
 from src.middleware.request_id import get_request_id
 from src.models.quiz import QuizRecord
@@ -32,6 +32,17 @@ from src.schemas.quiz import (
 from src.security import AuthenticatedUser
 
 logger = logging.getLogger("niche.quiz")
+
+_LITERARY_SOURCES = {"book", "article", "essay", "prose"}
+_TECHNICAL_SOURCES = {"tech", "code", "engineering", "paper", "research"}
+
+
+def _detect_session_mode(source: str | None) -> SessionMode:
+    if source and source.lower() in _LITERARY_SOURCES:
+        return "literary"
+    if source and source.lower() in _TECHNICAL_SOURCES:
+        return "technical"
+    return "interest"
 
 
 def _utc_now() -> datetime:
@@ -126,8 +137,17 @@ class QuizService:
             payload.session_id,
         )
 
+        session_mode = _detect_session_mode(session.source)
+        logger.info(
+            "request_id=%s event=quiz.mode.detected mode=%s source=%s",
+            get_request_id(),
+            session_mode,
+            session.source,
+        )
+
         try:
             generated = await self._ai_provider.generate_quiz(
+                session_mode=session_mode,
                 session_topic=session.topic,
                 session_subject=session.subject,
                 session_summary=note.summary,
@@ -243,11 +263,13 @@ class QuizService:
         note = await self._session_repository.get_note(session_id=quiz.session_id)
         session_summary = note.summary if note else (session.topic if session else "")
         session_insight = note.insight if note else None
+        grading_mode = _detect_session_mode(session.source if session else None)
 
         questions: list[QuizQuestion] = quiz.questions
 
         try:
             grading = await self._ai_provider.grade_quiz(
+                session_mode=grading_mode,
                 session_summary=session_summary,
                 session_insight=session_insight,
                 questions=questions,

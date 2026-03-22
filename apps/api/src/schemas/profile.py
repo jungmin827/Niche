@@ -43,6 +43,8 @@ class UpdateProfileRequest(CamelModel):
     bio: str | None = None
     handle: str | None = None
     is_public: bool | None = None
+    avatar_path: str | None = None
+    onboarding_completed: bool | None = None
 
 
 class ProfileAuthorDTO(CamelModel):
