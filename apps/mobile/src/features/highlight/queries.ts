@@ -4,7 +4,7 @@ import { queryKeys } from '../../constants/queryKeys';
 
 export function useMyHighlightsQuery() {
   return useQuery({
-    queryKey: queryKeys.highlight.list,
+    queryKey: queryKeys.myHighlights,
     queryFn: getMyHighlights,
     select: (data) => data.items,
   });
