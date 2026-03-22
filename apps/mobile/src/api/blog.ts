@@ -29,6 +29,10 @@ export async function getMyBlogPosts() {
   return apiRequest<BlogPostListResponse>('/v1/me/blog-posts');
 }
 
+export async function getAllBlogPosts() {
+  return apiRequest<BlogPostListResponse>('/v1/blog-posts');
+}
+
 export async function getBlogPost(postId: string) {
   return apiRequest<{ post: BlogPost }>(`/v1/blog-posts/${postId}`);
 }
@@ -57,12 +61,16 @@ export async function deleteBlogPost(postId: string): Promise<void> {
   }
 }
 
-export async function presignUpload(contentType: string, fileExt: string) {
+export async function presignUpload(
+  contentType: string,
+  fileExt: string,
+  scope = 'blogCover',
+) {
   return apiRequest<PresignResponse>('/v1/uploads/presign', {
     method: 'POST',
     body: {
       bucket: 'content',
-      scope: 'blogCover',
+      scope,
       contentType,
       fileExt,
     },

@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiRequest } from './client';
 import { ApiError } from '../lib/error';
 import { getSession } from './session';
+import { presignUpload, uploadImageToStorage } from './blog';
 import { ArchiveResponse } from '../features/archive/types';
 import { Highlight, HighlightCreateInput } from '../features/share/types';
 
@@ -84,6 +85,19 @@ async function getHighlightWithSourceLinkage(highlightId: string) {
 }
 
 export async function createHighlight(input: HighlightCreateInput) {
+  // 1. 렌더된 템플릿 이미지를 Supabase Storage에 업로드
+  const renderedPresign = await presignUpload('image/png', 'png', 'highlightRendered');
+  await uploadImageToStorage(renderedPresign, input.renderedImagePath);
+
+  // 2. 배경 사진이 있으면 같이 업로드
+  let sourceStoragePath: string | null = null;
+  if (input.sourcePhotoPath) {
+    const sourcePresign = await presignUpload('image/jpeg', 'jpg', 'highlightSourcePhoto');
+    await uploadImageToStorage(sourcePresign, input.sourcePhotoPath);
+    sourceStoragePath = sourcePresign.path;
+  }
+
+  // 3. 로컬 URI 대신 Storage path를 백엔드에 전달
   const response = await apiRequest<{ highlight: Highlight }>('/v1/highlights', {
     method: 'POST',
     body: {
@@ -93,12 +107,13 @@ export async function createHighlight(input: HighlightCreateInput) {
       title: input.title.trim(),
       caption: input.caption.trim() || null,
       templateCode: input.templateCode,
-      renderedImagePath: input.renderedImagePath,
-      sourcePhotoPath: input.sourcePhotoPath,
+      renderedImagePath: renderedPresign.path,
+      sourcePhotoPath: sourceStoragePath,
       visibility: input.visibility,
     },
   });
 
+  // 4. 로컬 URI를 캐싱해서 오프라인/즉시 표시에 활용
   await cacheHighlightRenderUri(response.highlight.id, input.renderedImagePath);
 
   return {
