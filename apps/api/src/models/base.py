@@ -23,3 +23,10 @@ class SessionStatusDBEnum(str, Enum):
 class HighlightSourceTypeDBEnum(str, Enum):
     SESSION = "session"
     SESSION_BUNDLE = "session_bundle"
+
+
+class QuizJobStatusDBEnum(str, Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    DONE = "done"
+    FAILED = "failed"

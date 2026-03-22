@@ -9,10 +9,9 @@ from src.config import Settings, get_settings
 from src.db import get_async_session_factory
 from src.exceptions import ServiceUnavailableAppError
 from src.repositories.blog_post_repo import BlogPostRepository, InMemoryBlogPostRepository
-from src.repositories.feed_post_repo import FeedPostRepository, InMemoryFeedPostRepository
 from src.repositories.highlight_repo import HighlightRepository, InMemoryHighlightRepository, PostgresHighlightRepository
 from src.repositories.profile_repo import InMemoryProfileRepository, ProfileRepository
-from src.repositories.quiz_job_repo import InMemoryQuizRepository, QuizRepository
+from src.repositories.quiz_job_repo import InMemoryQuizRepository, PostgresQuizRepository, QuizRepository
 from src.repositories.session_bundle_repo import InMemorySessionBundleRepository, SessionBundleRepository
 from src.repositories.session_repo import SessionRepository, InMemorySessionRepository, PostgresSessionRepository
 from src.services.blog_post_service import BlogPostService
@@ -23,7 +22,6 @@ _memory_session_repository = InMemorySessionRepository()
 _memory_highlight_repository = InMemoryHighlightRepository()
 _memory_quiz_repository = InMemoryQuizRepository()
 _memory_blog_post_repository = InMemoryBlogPostRepository()
-_memory_feed_post_repository = InMemoryFeedPostRepository()
 _memory_session_bundle_repository = InMemorySessionBundleRepository()
 _memory_profile_repository = InMemoryProfileRepository()
 logger = logging.getLogger("niche.repositories")
@@ -39,6 +37,12 @@ def _get_postgres_session_repository(database_url: str) -> PostgresSessionReposi
 def _get_postgres_highlight_repository(database_url: str) -> PostgresHighlightRepository:
     settings = Settings(database_url=database_url, session_repository_backend="postgres")
     return PostgresHighlightRepository(get_async_session_factory(settings))
+
+
+@lru_cache
+def _get_postgres_quiz_repository(database_url: str) -> PostgresQuizRepository:
+    settings = Settings(database_url=database_url, session_repository_backend="postgres")
+    return PostgresQuizRepository(get_async_session_factory(settings))
 
 
 def get_session_repository(settings: Settings = Depends(get_settings)) -> SessionRepository:
@@ -82,7 +86,22 @@ def get_highlight_repository(settings: Settings = Depends(get_settings)) -> High
 
 
 def get_quiz_repository(settings: Settings = Depends(get_settings)) -> QuizRepository:
-    # TODO: add PostgresQuizRepository when quiz persistence is needed
+    if settings.session_repository_backend == "postgres":
+        if not settings.database_url:
+            raise ServiceUnavailableAppError(
+                "Persistence backend is unavailable.",
+                details={"backend": "postgres", "reason": "NICHE_DATABASE_URL is not configured."},
+            )
+        try:
+            repository = _get_postgres_quiz_repository(settings.database_url)
+        except Exception as exc:
+            raise ServiceUnavailableAppError(
+                "Persistence backend is unavailable.",
+                details={"backend": "postgres", "reason": str(exc)},
+            ) from exc
+        logger.info("repository=quiz backend=postgres")
+        return repository
+    logger.info("repository=quiz backend=memory")
     return _memory_quiz_repository
 
 
@@ -102,11 +121,6 @@ def get_ai_provider(settings: Settings = Depends(get_settings)) -> AIProvider:
 def get_blog_post_repo(settings: Settings = Depends(get_settings)) -> BlogPostRepository:
     # TODO: add PostgresBlogPostRepository when blog post persistence is needed
     return _memory_blog_post_repository
-
-
-def get_feed_post_repo(settings: Settings = Depends(get_settings)) -> FeedPostRepository:
-    # TODO: add PostgresFeedPostRepository when feed post persistence is needed
-    return _memory_feed_post_repository
 
 
 def get_blog_post_service(
@@ -139,3 +153,5 @@ def get_upload_service(settings: Settings = Depends(get_settings)) -> UploadServ
 def reset_repository_backends() -> None:
     _get_postgres_session_repository.cache_clear()
     _get_postgres_highlight_repository.cache_clear()
+    _get_postgres_quiz_repository.cache_clear()
+
