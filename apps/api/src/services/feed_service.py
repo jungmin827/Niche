@@ -5,6 +5,7 @@ import logging
 from src.config import Settings
 from src.exceptions import ValidationAppError
 from src.repositories.highlight_repo import HighlightRepository
+from src.repositories.profile_repo import ProfileRepository
 from src.models.highlight import HighlightRecord
 from src.schemas.feed import FeedAuthorDTO, FeedItemDTO, FeedResponse
 from src.middleware.request_id import get_request_id
@@ -14,8 +15,15 @@ logger = logging.getLogger("niche.feed")
 
 
 class FeedService:
-    def __init__(self, *, highlight_repository: HighlightRepository, settings: Settings) -> None:
+    def __init__(
+        self,
+        *,
+        highlight_repository: HighlightRepository,
+        profile_repository: ProfileRepository,
+        settings: Settings,
+    ) -> None:
         self._highlight_repository = highlight_repository
+        self._profile_repository = profile_repository
         self._settings = settings
 
     async def list_feed(
@@ -36,7 +44,7 @@ class FeedService:
                 details={"cursor": str(exc)},
             ) from exc
 
-        feed_items = [self._to_feed_item(highlight=h) for h in items]
+        feed_items = [await self._to_feed_item(highlight=h) for h in items]
         logger.info(
             "request_id=%s event=feed.list returned=%s has_next=%s",
             get_request_id(),
@@ -45,10 +53,10 @@ class FeedService:
         )
         return FeedResponse(items=feed_items, nextCursor=next_cursor, hasNext=has_next)
 
-    def _to_feed_item(self, *, highlight: HighlightRecord) -> FeedItemDTO:
+    async def _to_feed_item(self, *, highlight: HighlightRecord) -> FeedItemDTO:
         return FeedItemDTO(
             id=highlight.id,
-            author=self._build_placeholder_author(profile_id=highlight.profile_id),
+            author=await self._get_author(profile_id=highlight.profile_id),
             publishedAt=highlight.published_at,
             content=highlight.caption,
             renderedImageUrl=build_storage_url(
@@ -61,12 +69,15 @@ class FeedService:
             sessionId=highlight.session_id,
         )
 
-    def _build_placeholder_author(self, *, profile_id: str) -> FeedAuthorDTO:
-        # TODO: Replace with real profile lookup when profile domain is implemented.
+    async def _get_author(self, *, profile_id: str) -> FeedAuthorDTO:
+        record = await self._profile_repository.get_or_create(profile_id)
         return FeedAuthorDTO(
-            id=profile_id,
-            handle=profile_id,
-            displayName="NichE User",
-            avatarUrl=None,
-            currentRankCode="surface",
+            id=record.id,
+            handle=record.handle,
+            displayName=record.display_name,
+            avatarUrl=(
+                f"{self._settings.storage_public_base_url}/{record.avatar_path}"
+                if record.avatar_path else None
+            ),
+            currentRankCode=record.current_rank_code,
         )

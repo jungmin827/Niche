@@ -47,6 +47,8 @@ class HighlightRepository(Protocol):
 
     async def count_highlights(self, *, profile_id: str, visibility: str | None) -> int: ...
 
+    async def delete_highlight(self, *, highlight_id: str) -> bool: ...
+
     async def list_public_highlights(
         self,
         *,
@@ -135,6 +137,12 @@ class InMemoryHighlightRepository:
             last_item = page[-1]
             next_cursor = _encode_cursor(last_item.published_at, last_item.id)
         return page, next_cursor, has_next
+
+    async def delete_highlight(self, *, highlight_id: str) -> bool:
+        if highlight_id in self._highlights:
+            del self._highlights[highlight_id]
+            return True
+        return False
 
     async def count_highlights(self, *, profile_id: str, visibility: str | None) -> int:
         return len(

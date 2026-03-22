@@ -135,6 +135,25 @@ class HighlightService:
         )
         return HighlightResponse(highlight=self._to_summary_dto(saved))
 
+    async def delete_highlight(
+        self,
+        *,
+        current_user: AuthenticatedUser,
+        highlight_id: str,
+    ) -> None:
+        highlight = await self._require_owned_highlight(
+            current_user=current_user,
+            highlight_id=highlight_id,
+        )
+        await self._highlight_repository.delete_highlight(highlight_id=highlight.id)
+        logger.info(
+            "request_id=%s event=highlight.delete backend=%s highlight_id=%s profile_id=%s",
+            get_request_id(),
+            self._settings.session_repository_backend,
+            highlight.id,
+            current_user.profile_id,
+        )
+
     async def list_my_highlights(
         self,
         *,

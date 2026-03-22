@@ -5,9 +5,12 @@ from datetime import date, datetime, timedelta, timezone
 
 from src.config import Settings
 from src.exceptions import ValidationAppError
+from src.repositories.blog_post_repo import BlogPostRepository
 from src.repositories.highlight_repo import HighlightRepository
+from src.repositories.profile_repo import ProfileRepository
 from src.repositories.session_repo import SessionRepository
 from src.schemas.archive import (
+    ArchiveBlogPostItemDTO,
     ArchiveBlogPostsResponse,
     ArchiveHighlightsResponse,
     ArchiveProfileDTO,
@@ -41,10 +44,14 @@ class ArchiveService:
         *,
         highlight_repository: HighlightRepository,
         session_repository: SessionRepository,
+        blog_post_repository: BlogPostRepository,
+        profile_repository: ProfileRepository,
         settings: Settings,
     ) -> None:
         self._highlight_repository = highlight_repository
         self._session_repository = session_repository
+        self._blog_post_repository = blog_post_repository
+        self._profile_repository = profile_repository
         self._settings = settings
 
     async def get_my_archive(
@@ -56,8 +63,7 @@ class ArchiveService:
         blog_limit: int,
         highlight_limit: int,
     ) -> MyArchiveResponse:
-        del blog_cursor
-        del blog_limit
+        del blog_cursor  # TODO: implement blog cursor pagination when BlogPostRepository supports it
 
         bounded_highlight_limit = min(highlight_limit, self._settings.highlight_list_max_limit)
         try:
@@ -79,20 +85,39 @@ class ArchiveService:
             profile_id=current_user.profile_id,
         )
 
+        blog_posts = await self._blog_post_repository.list_by_author(current_user.profile_id)
+        blog_post_items = [
+            ArchiveBlogPostItemDTO(
+                id=post.id,
+                title=post.title,
+                excerpt=post.excerpt,
+                cover_image_url=(
+                    f"{self._settings.storage_public_base_url}/{post.cover_image_path}"
+                    if post.cover_image_path
+                    else None
+                ),
+                visibility=post.visibility,
+                published_at=post.published_at.isoformat() if post.published_at else None,
+            )
+            for post in sorted(blog_posts, key=lambda p: p.published_at, reverse=True)
+        ]
+        blog_page = blog_post_items[:blog_limit] if blog_limit else blog_post_items
+        blog_has_next = len(blog_post_items) > blog_limit if blog_limit else False
+
         highlight_items = [
             build_highlight_summary(highlight=item, settings=self._settings) for item in items
         ]
 
         response = MyArchiveResponse(
-            profile=self._build_placeholder_profile(profile_id=current_user.profile_id),
+            profile=await self._get_profile(current_user.profile_id),
             stats=ArchiveStatsDTO(
                 totalSessions=total_sessions,
                 totalFocusMinutes=total_minutes,
-                totalBlogPosts=0,
+                totalBlogPosts=len(blog_post_items),
                 totalHighlights=total_highlights,
                 currentStreakDays=_compute_streak(completed_dates),
             ),
-            blogPosts=ArchiveBlogPostsResponse(items=[], nextCursor=None, hasNext=False),
+            blogPosts=ArchiveBlogPostsResponse(items=blog_page, nextCursor=None, hasNext=blog_has_next),
             highlights=ArchiveHighlightsResponse(
                 items=highlight_items,
                 nextCursor=next_cursor,
@@ -112,17 +137,20 @@ class ArchiveService:
         )
         return response
 
-    def _build_placeholder_profile(self, *, profile_id: str) -> ArchiveProfileDTO:
-        # TODO: Replace with real profile domain data when /v1/me is implemented.
+    async def _get_profile(self, profile_id: str) -> ArchiveProfileDTO:
+        record = await self._profile_repository.get_or_create(profile_id)
         return ArchiveProfileDTO(
-            id=profile_id,
-            handle=profile_id,
-            displayName="NichE User",
-            bio=None,
-            avatarUrl=None,
-            currentRankCode="surface",
-            rankScore=0,
-            isPublic=True,
+            id=record.id,
+            handle=record.handle,
+            displayName=record.display_name,
+            bio=record.bio,
+            avatarUrl=(
+                f"{self._settings.storage_public_base_url}/{record.avatar_path}"
+                if record.avatar_path else None
+            ),
+            currentRankCode=record.current_rank_code,
+            rankScore=record.rank_score,
+            isPublic=record.is_public,
         )
 
 

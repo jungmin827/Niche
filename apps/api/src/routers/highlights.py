@@ -60,6 +60,15 @@ async def update_highlight(
     )
 
 
+@router.delete("/highlights/{highlight_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_highlight(
+    highlight_id: str,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+    service: HighlightService = Depends(get_highlight_service),
+) -> None:
+    await service.delete_highlight(current_user=current_user, highlight_id=highlight_id)
+
+
 @router.get("/me/highlights", response_model=HighlightListResponse)
 async def list_my_highlights(
     cursor: str | None = Query(default=None),
