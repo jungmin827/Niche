@@ -73,7 +73,7 @@ export default function SessionNoteModalScreen() {
               const { job } = await createQuizJobMutation.mutateAsync(sessionId);
               router.replace({
                 pathname: '/(modals)/quiz-loading',
-                params: { jobId: job.jobId, sessionId },
+                params: { jobId: job.id, sessionId },
               });
             } catch {
               router.replace('/(tabs)/session');

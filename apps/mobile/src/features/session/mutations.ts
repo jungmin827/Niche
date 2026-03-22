@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createSession, completeSession, cancelSession, upsertSessionNote } from '../../api/session';
 import { queryKeys } from '../../constants/queryKeys';
+import { ApiError } from '../../lib/error';
 import { CreateSessionInput, UpsertSessionNoteInput } from './types';
 import { useSessionStore } from './store';
 
@@ -44,6 +45,14 @@ export function useCompleteSessionMutation() {
         ...previous,
         session,
       }));
+    },
+    onError: (error, sessionId) => {
+      if (error instanceof ApiError && error.code === 'SESSION_ALREADY_FINISHED') {
+        // Session completed in DB but local store is stale (e.g. response dropped on server restart).
+        clearActiveSession();
+        invalidateSessionQueries(queryClient);
+        queryClient.invalidateQueries({ queryKey: queryKeys.sessionDetail(sessionId) });
+      }
     },
   });
 }
