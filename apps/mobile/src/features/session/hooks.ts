@@ -11,3 +11,4 @@ export {
   useUpsertSessionNoteMutation,
 } from './mutations';
 export { useSessionStore } from './store';
+export { useSessionStore as useSessionCounts } from './store';

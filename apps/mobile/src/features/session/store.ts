@@ -10,6 +10,8 @@ type PersistedSessionState = {
   activeSessionTopic: string | null;
   activeSessionSubject: string | null;
   pauseStartedAt: string | null;
+  plannedSessionCount: number;
+  completedSessionCount: number;
 };
 
 const initialSessionState: PersistedSessionState = {
@@ -19,6 +21,8 @@ const initialSessionState: PersistedSessionState = {
   activeSessionTopic: null,
   activeSessionSubject: null,
   pauseStartedAt: null,
+  plannedSessionCount: 1,
+  completedSessionCount: 0,
 };
 
 async function writeSessionState(state: PersistedSessionState) {
@@ -44,6 +48,8 @@ type SessionStoreState = {
   activeSessionTopic: PersistedSessionState['activeSessionTopic'];
   activeSessionSubject: PersistedSessionState['activeSessionSubject'];
   pauseStartedAt: PersistedSessionState['pauseStartedAt'];
+  plannedSessionCount: number;
+  completedSessionCount: number;
   hasHydrated: boolean;
   setActiveSession: (payload: {
     sessionId: string;
@@ -54,10 +60,13 @@ type SessionStoreState = {
   }) => void;
   setPaused: (pauseStartedAt: string | null) => void;
   clearActiveSession: () => void;
+  setPlannedSessionCount: (count: number) => void;
+  incrementCompletedSessionCount: () => void;
+  resetSessionCounts: () => void;
   markHydrated: () => void;
 };
 
-export const useSessionStore = create<SessionStoreState>()((set) => ({
+export const useSessionStore = create<SessionStoreState>()((set, get) => ({
   ...initialSessionState,
   hasHydrated: false,
   setActiveSession: ({ sessionId, startedAt, plannedMinutes, topic, subject }) => {
@@ -68,6 +77,8 @@ export const useSessionStore = create<SessionStoreState>()((set) => ({
       activeSessionTopic: topic,
       activeSessionSubject: subject,
       pauseStartedAt: null,
+      plannedSessionCount: get().plannedSessionCount,
+      completedSessionCount: get().completedSessionCount,
     };
     set(nextState);
     void writeSessionState(nextState);
@@ -81,13 +92,69 @@ export const useSessionStore = create<SessionStoreState>()((set) => ({
         activeSessionTopic: state.activeSessionTopic,
         activeSessionSubject: state.activeSessionSubject,
         pauseStartedAt,
+        plannedSessionCount: state.plannedSessionCount,
+        completedSessionCount: state.completedSessionCount,
       };
       void writeSessionState(nextState);
       return { pauseStartedAt };
     }),
   clearActiveSession: () => {
-    set(initialSessionState);
-    void clearSessionState();
+    const { plannedSessionCount, completedSessionCount } = get();
+    const next: PersistedSessionState = {
+      ...initialSessionState,
+      plannedSessionCount,
+      completedSessionCount,
+    };
+    set(next);
+    void writeSessionState(next);
+  },
+  setPlannedSessionCount: (count) => {
+    set((state) => {
+      const next: PersistedSessionState = {
+        activeSessionId: state.activeSessionId,
+        activeSessionStartedAt: state.activeSessionStartedAt,
+        activeSessionPlannedMinutes: state.activeSessionPlannedMinutes,
+        activeSessionTopic: state.activeSessionTopic,
+        activeSessionSubject: state.activeSessionSubject,
+        pauseStartedAt: state.pauseStartedAt,
+        plannedSessionCount: count,
+        completedSessionCount: state.completedSessionCount,
+      };
+      void writeSessionState(next);
+      return { plannedSessionCount: count };
+    });
+  },
+  incrementCompletedSessionCount: () => {
+    set((state) => {
+      const next: PersistedSessionState = {
+        activeSessionId: state.activeSessionId,
+        activeSessionStartedAt: state.activeSessionStartedAt,
+        activeSessionPlannedMinutes: state.activeSessionPlannedMinutes,
+        activeSessionTopic: state.activeSessionTopic,
+        activeSessionSubject: state.activeSessionSubject,
+        pauseStartedAt: state.pauseStartedAt,
+        plannedSessionCount: state.plannedSessionCount,
+        completedSessionCount: state.completedSessionCount + 1,
+      };
+      void writeSessionState(next);
+      return { completedSessionCount: next.completedSessionCount };
+    });
+  },
+  resetSessionCounts: () => {
+    set((state) => {
+      const next: PersistedSessionState = {
+        activeSessionId: state.activeSessionId,
+        activeSessionStartedAt: state.activeSessionStartedAt,
+        activeSessionPlannedMinutes: state.activeSessionPlannedMinutes,
+        activeSessionTopic: state.activeSessionTopic,
+        activeSessionSubject: state.activeSessionSubject,
+        pauseStartedAt: state.pauseStartedAt,
+        plannedSessionCount: 1,
+        completedSessionCount: 0,
+      };
+      void writeSessionState(next);
+      return { plannedSessionCount: 1, completedSessionCount: 0 };
+    });
   },
   markHydrated: () => set({ hasHydrated: true }),
 }));

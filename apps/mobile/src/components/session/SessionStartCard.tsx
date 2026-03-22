@@ -1,75 +1,276 @@
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
-import { SESSION_PRESET_MINUTES } from '../../features/session/utils';
-import AppButton from '../ui/AppButton';
-import AppCard from '../ui/AppCard';
-import AppInput from '../ui/AppInput';
+import { Pressable, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AppText from '../ui/AppText';
 
 type Props = {
+  streakDays?: number;
+  rankLabel?: string;
+  todayFocusMinutes?: number;
+  hasActiveSession?: boolean;
   isSubmitting?: boolean;
-  onSubmit: (input: { topic: string; subject: string; plannedMinutes: number }) => void;
+  onSubmit: (input: {
+    topic: string;
+    subject: string;
+    plannedMinutes: number;
+    plannedSessionCount: number;
+  }) => void;
+  onResumeSession?: () => void;
 };
 
-export default function SessionStartCard({ isSubmitting, onSubmit }: Props) {
+export default function SessionStartCard({
+  streakDays = 0,
+  rankLabel = 'Surface',
+  todayFocusMinutes = 0,
+  hasActiveSession = false,
+  isSubmitting = false,
+  onSubmit,
+  onResumeSession,
+}: Props) {
   const [topic, setTopic] = useState('');
-  const [subject, setSubject] = useState('');
-  const [plannedMinutes, setPlannedMinutes] = useState<number>(15);
+  const [plannedMinutes, setPlannedMinutes] = useState(15);
+  const [plannedSessionCount, setPlannedSessionCount] = useState(1);
+
+  const canPlay = hasActiveSession || (!isSubmitting && topic.trim().length > 0);
+
+  const handlePlay = () => {
+    if (hasActiveSession) {
+      onResumeSession?.();
+      return;
+    }
+    if (!canPlay) return;
+    onSubmit({ topic, subject: '', plannedMinutes, plannedSessionCount });
+  };
 
   return (
-    <AppCard className="gap-6">
-      <View className="gap-3">
-        <AppText variant="title">오늘의 세션</AppText>
-        <AppText variant="bodySmall" className="text-[#555555]">
-          지금 보고 있는 것을 따라가 보세요.
-        </AppText>
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }} edges={['top', 'bottom']}>
+      <View style={{ flex: 1, backgroundColor: '#000' }}>
+        {/* Stats bar */}
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            paddingHorizontal: 32,
+            paddingTop: 16,
+            paddingBottom: 8,
+          }}
+        >
+          <View>
+            <AppText
+              variant="caption"
+              color="inverse"
+              style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, marginBottom: 2 }}
+            >
+              오늘의 누적
+            </AppText>
+            <AppText variant="title" color="inverse" style={{ color: '#fff' }}>
+              {todayFocusMinutes}분
+            </AppText>
+          </View>
+          <View style={{ alignItems: 'center' }}>
+            <AppText
+              variant="caption"
+              color="inverse"
+              style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, marginBottom: 2 }}
+            >
+              랭크
+            </AppText>
+            <AppText variant="title" color="inverse" style={{ color: '#fff' }}>
+              {rankLabel}
+            </AppText>
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <AppText
+              variant="caption"
+              color="inverse"
+              style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, marginBottom: 2 }}
+            >
+              streak
+            </AppText>
+            <AppText variant="title" color="inverse" style={{ color: '#fff' }}>
+              {streakDays > 0 ? `${streakDays}일` : '—'}
+            </AppText>
+          </View>
+        </View>
 
-      <AppInput
-        label="주제"
-        placeholder="무엇을 따라가고 있나요?"
-        value={topic}
-        onChangeText={setTopic}
-        hint="짧게 적어두면 세션이 더 선명해집니다."
-      />
+        {/* Center form */}
+        <View
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: 32,
+            gap: 40,
+          }}
+        >
+          {/* Topic input */}
+          <TextInput
+            value={topic}
+            onChangeText={setTopic}
+            placeholder={hasActiveSession ? '진행 중인 세션이 있습니다.' : 'What is your topic today?'}
+            placeholderTextColor="rgba(255,255,255,0.35)"
+            editable={!hasActiveSession}
+            style={{
+              width: '100%',
+              borderBottomWidth: 1,
+              borderBottomColor: 'rgba(255,255,255,0.25)',
+              paddingBottom: 12,
+              color: '#fff',
+              fontSize: 18,
+              textAlign: 'center',
+              fontWeight: '300',
+            }}
+          />
 
-      <AppInput
-        label="분류"
-        placeholder="책, 영화, 관찰, 사유"
-        value={subject}
-        onChangeText={setSubject}
-      />
-
-      <View className="gap-3">
-        <AppText variant="caption" className="text-[#555555]">
-          시간
-        </AppText>
-        <View className="flex-row gap-3">
-          {SESSION_PRESET_MINUTES.map((minutes) => {
-            const selected = plannedMinutes === minutes;
-
-            return (
-              <Pressable
-                key={minutes}
-                className={`rounded-full border px-4 py-[11px] ${
-                  selected ? 'border-black bg-black' : 'border-[#D9D9D4] bg-[#F6F6F4]'
-                }`}
-                onPress={() => setPlannedMinutes(minutes)}
+          {/* Time + Sessions steppers */}
+          <View style={{ width: '100%', gap: 20 }}>
+            {/* Time */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <AppText
+                variant="bodySmall"
+                color="inverse"
+                style={{ color: 'rgba(255,255,255,0.65)' }}
               >
-                <AppText color={selected ? 'inverse' : 'primary'} variant="bodySmall">
-                  {minutes}분
+                Time
+              </AppText>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                <Pressable
+                  onPress={() => setPlannedMinutes((m) => Math.max(5, m - 5))}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.3)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <AppText color="inverse" style={{ color: '#fff', fontSize: 18, lineHeight: 22 }}>
+                    −
+                  </AppText>
+                </Pressable>
+                <AppText
+                  color="inverse"
+                  style={{ color: '#fff', minWidth: 80, textAlign: 'center', fontSize: 14 }}
+                >
+                  {plannedMinutes} mins
                 </AppText>
-              </Pressable>
-            );
-          })}
+                <Pressable
+                  onPress={() => setPlannedMinutes((m) => m + 5)}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.3)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <AppText color="inverse" style={{ color: '#fff', fontSize: 18, lineHeight: 22 }}>
+                    +
+                  </AppText>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Divider */}
+            <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+
+            {/* Sessions */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <AppText
+                variant="bodySmall"
+                color="inverse"
+                style={{ color: 'rgba(255,255,255,0.65)' }}
+              >
+                Sessions
+              </AppText>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                <Pressable
+                  onPress={() => setPlannedSessionCount((s) => Math.max(1, s - 1))}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.3)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <AppText color="inverse" style={{ color: '#fff', fontSize: 18, lineHeight: 22 }}>
+                    −
+                  </AppText>
+                </Pressable>
+                <AppText
+                  color="inverse"
+                  style={{ color: '#fff', minWidth: 80, textAlign: 'center', fontSize: 14 }}
+                >
+                  {plannedSessionCount} {plannedSessionCount === 1 ? 'Session' : 'Sessions'}
+                </AppText>
+                <Pressable
+                  onPress={() => setPlannedSessionCount((s) => s + 1)}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.3)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <AppText color="inverse" style={{ color: '#fff', fontSize: 18, lineHeight: 22 }}>
+                    +
+                  </AppText>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Bottom play button */}
+        <View style={{ alignItems: 'center', paddingBottom: 64, gap: 16 }}>
+          <Pressable
+            onPress={handlePlay}
+            disabled={!canPlay}
+            style={({ pressed }) => ({
+              width: 96,
+              height: 96,
+              borderRadius: 48,
+              borderWidth: 2,
+              borderColor: canPlay ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.2)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            {/* Play triangle */}
+            <View
+              style={{
+                width: 0,
+                height: 0,
+                borderTopWidth: 13,
+                borderBottomWidth: 13,
+                borderLeftWidth: 20,
+                borderTopColor: 'transparent',
+                borderBottomColor: 'transparent',
+                borderLeftColor: canPlay ? '#fff' : 'rgba(255,255,255,0.2)',
+                marginLeft: 4,
+              }}
+            />
+          </Pressable>
+          <AppText
+            variant="bodySmall"
+            color="inverse"
+            style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}
+          >
+            {hasActiveSession ? 'Resume session' : 'Ready to begin?'}
+          </AppText>
         </View>
       </View>
-
-      <AppButton
-        disabled={isSubmitting || topic.trim().length === 0}
-        label={plannedMinutes === 15 ? '세션 시작' : `${plannedMinutes}분 시작`}
-        onPress={() => onSubmit({ topic, subject, plannedMinutes })}
-      />
-    </AppCard>
+    </SafeAreaView>
   );
 }

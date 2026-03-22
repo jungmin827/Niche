@@ -7,10 +7,12 @@ from src.config import Settings, get_settings
 from src.db import get_async_session_factory
 from src.exceptions import ServiceUnavailableAppError
 from src.repositories.highlight_repo import HighlightRepository, InMemoryHighlightRepository, PostgresHighlightRepository
+from src.repositories.quiz_job_repo import InMemoryQuizRepository, QuizRepository
 from src.repositories.session_repo import SessionRepository, InMemorySessionRepository, PostgresSessionRepository
 
 _memory_session_repository = InMemorySessionRepository()
 _memory_highlight_repository = InMemoryHighlightRepository()
+_memory_quiz_repository = InMemoryQuizRepository()
 logger = logging.getLogger("niche.repositories")
 
 
@@ -64,6 +66,11 @@ def get_highlight_repository(settings: Settings = Depends(get_settings)) -> High
         return repository
     logger.info("repository=highlight backend=memory")
     return _memory_highlight_repository
+
+
+def get_quiz_repository(settings: Settings = Depends(get_settings)) -> QuizRepository:
+    # TODO: add PostgresQuizRepository when quiz persistence is needed
+    return _memory_quiz_repository
 
 
 def reset_repository_backends() -> None:

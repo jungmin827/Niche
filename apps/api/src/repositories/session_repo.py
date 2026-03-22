@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import base64
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any, Protocol
 from uuid import uuid4
 
 try:
-    from sqlalchemy import Select, and_, or_, select
+    from sqlalchemy import Date, Select, and_, cast, func, or_, select
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
     from src.models.base import SessionStatusDBEnum, VisibilityDBEnum
@@ -17,6 +17,9 @@ except ModuleNotFoundError:  # pragma: no cover - exercised only in minimal loca
     AsyncSession = Any
     async_sessionmaker = Any
     and_ = None
+    cast = None
+    Date = None
+    func = None
     or_ = None
     select = None
     SessionStatusDBEnum = None
@@ -45,6 +48,12 @@ class SessionRepository(Protocol):
         cursor: str | None,
         limit: int,
     ) -> tuple[list[SessionRecord], str | None, bool]: ...
+
+    async def count_completed_sessions(self, *, profile_id: str) -> int: ...
+
+    async def sum_completed_minutes(self, *, profile_id: str) -> int: ...
+
+    async def get_completed_session_dates(self, *, profile_id: str) -> list[date]: ...
 
     async def get_note(self, *, session_id: str) -> SessionNoteRecord | None: ...
 
@@ -127,6 +136,27 @@ class InMemorySessionRepository:
             last_item = page[-1]
             next_cursor = _encode_cursor(last_item.created_at, last_item.id)
         return page, next_cursor, has_next
+
+    async def count_completed_sessions(self, *, profile_id: str) -> int:
+        return sum(
+            1
+            for s in self._sessions.values()
+            if s.profile_id == profile_id and s.status == "completed"
+        )
+
+    async def sum_completed_minutes(self, *, profile_id: str) -> int:
+        return sum(
+            s.actual_minutes or 0
+            for s in self._sessions.values()
+            if s.profile_id == profile_id and s.status == "completed"
+        )
+
+    async def get_completed_session_dates(self, *, profile_id: str) -> list[date]:
+        dates: set[date] = set()
+        for s in self._sessions.values():
+            if s.profile_id == profile_id and s.status == "completed" and s.ended_at is not None:
+                dates.add(_normalize_timestamp(s.ended_at).date())
+        return sorted(dates, reverse=True)
 
     async def get_note(self, *, session_id: str) -> SessionNoteRecord | None:
         return self._notes.get(session_id)
@@ -318,6 +348,45 @@ class PostgresSessionRepository:
             updated_at=table.updated_at,
         )
 
+    async def count_completed_sessions(self, *, profile_id: str) -> int:
+        _require_sqlalchemy()
+        statement = select(func.count(SessionTable.id)).where(
+            SessionTable.profile_id == profile_id,
+            SessionTable.status == SessionStatusDBEnum.COMPLETED,
+            SessionTable.deleted_at.is_(None),
+        )
+        async with self._session_factory() as db:
+            count = (await db.execute(statement)).scalar_one()
+            return int(count)
+
+    async def sum_completed_minutes(self, *, profile_id: str) -> int:
+        _require_sqlalchemy()
+        statement = select(func.coalesce(func.sum(SessionTable.actual_minutes), 0)).where(
+            SessionTable.profile_id == profile_id,
+            SessionTable.status == SessionStatusDBEnum.COMPLETED,
+            SessionTable.deleted_at.is_(None),
+        )
+        async with self._session_factory() as db:
+            total = (await db.execute(statement)).scalar_one()
+            return int(total)
+
+    async def get_completed_session_dates(self, *, profile_id: str) -> list[date]:
+        _require_sqlalchemy()
+        statement = (
+            select(cast(SessionTable.ended_at, Date))
+            .where(
+                SessionTable.profile_id == profile_id,
+                SessionTable.status == SessionStatusDBEnum.COMPLETED,
+                SessionTable.ended_at.is_not(None),
+                SessionTable.deleted_at.is_(None),
+            )
+            .distinct()
+            .order_by(cast(SessionTable.ended_at, Date).desc())
+        )
+        async with self._session_factory() as db:
+            rows = (await db.execute(statement)).scalars().all()
+            return list(rows)
+
     def _to_note_record(self, table: SessionNoteTable) -> SessionNoteRecord:
         return SessionNoteRecord(
             session_id=table.session_id,
@@ -342,5 +411,5 @@ def _visibility_to_db(visibility: str) -> VisibilityDBEnum:
 
 
 def _require_sqlalchemy() -> None:
-    if select is None or SessionTable is None or SessionNoteTable is None:
+    if select is None or SessionTable is None or SessionNoteTable is None or func is None:
         raise RuntimeError("SQLAlchemy is required for postgres persistence.")

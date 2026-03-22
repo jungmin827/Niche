@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 from fastapi import APIRouter, Depends, Query
 
 from src.config import Settings, get_settings
-from src.dependencies.repositories import get_highlight_repository
+from src.dependencies.repositories import get_highlight_repository, get_session_repository
 from src.repositories.highlight_repo import HighlightRepository
+from src.repositories.session_repo import SessionRepository
 from src.schemas.archive import MyArchiveResponse
 from src.security import AuthenticatedUser, get_current_user
 from src.services.archive_service import ArchiveService
@@ -13,9 +16,11 @@ router = APIRouter(prefix="/v1", tags=["archive"])
 def get_archive_service(
     settings: Settings = Depends(get_settings),
     highlight_repository: HighlightRepository = Depends(get_highlight_repository),
+    session_repository: SessionRepository = Depends(get_session_repository),
 ) -> ArchiveService:
     return ArchiveService(
         highlight_repository=highlight_repository,
+        session_repository=session_repository,
         settings=settings,
     )
 

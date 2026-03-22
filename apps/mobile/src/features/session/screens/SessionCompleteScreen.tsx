@@ -1,80 +1,244 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { View } from 'react-native';
-import Screen from '../../../components/layout/Screen';
-import TopBar from '../../../components/layout/TopBar';
-import SessionSummaryCard from '../../../components/session/SessionSummaryCard';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AppButton from '../../../components/ui/AppButton';
-import AppCard from '../../../components/ui/AppCard';
 import AppText from '../../../components/ui/AppText';
 import { routes } from '../../../constants/routes';
-import { toApiError } from '../../../lib/error';
-import { useSessionDetailQuery } from '../hooks';
+import { useSessionDetailQuery, useSessionStore, useUpsertSessionNoteMutation } from '../hooks';
+import { clearSessionNoteDraft, readSessionNoteDraft } from '../utils';
+
+// Quiz phase state machine
+type QuizPhase = 'idle' | 'generating' | 'question' | 'submitting' | 'result';
 
 export default function SessionCompleteScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId?: string }>();
   const detailQuery = useSessionDetailQuery(sessionId ?? '');
+  const noteMutation = useUpsertSessionNoteMutation(sessionId ?? '');
+  const plannedSessionCount = useSessionStore((state) => state.plannedSessionCount);
+  const completedSessionCount = useSessionStore((state) => state.completedSessionCount);
+
+  const [memo, setMemo] = useState('');
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [quizPhase, setQuizPhase] = useState<QuizPhase>('idle');
+  const [quizAnswer, setQuizAnswer] = useState('');
+  // TODO: replace with real quiz data from API
+  const mockQuestion = '이번 세션에서 가장 인상 깊었던 내용은 무엇이었나요?';
+  const mockScore = 82;
+  const mockFeedback = '핵심 내용을 잘 포착했습니다.';
+
+  // Pre-fill memo from draft saved during active session
+  useEffect(() => {
+    if (!sessionId || draftLoaded) return;
+    readSessionNoteDraft(sessionId)
+      .then((draft) => {
+        if (draft?.summary) setMemo(draft.summary);
+        setDraftLoaded(true);
+      })
+      .catch(() => setDraftLoaded(true));
+  }, [sessionId, draftLoaded]);
+
+  const session = detailQuery.data?.session;
+  const hasMoreSessions = completedSessionCount < plannedSessionCount;
+
+  const saveNoteAndNavigate = async (destination: 'share' | 'nextSession') => {
+    if (sessionId && memo.trim().length > 0) {
+      await noteMutation.mutateAsync({ summary: memo, insight: '' });
+      await clearSessionNoteDraft(sessionId);
+    }
+    if (destination === 'share') {
+      router.push({ pathname: routes.sharePreviewModal, params: { sessionId } });
+    } else {
+      router.replace(routes.sessionHome);
+    }
+  };
+
+  const handleLetsCheck = () => {
+    // TODO: call POST /v1/quizzes/jobs and poll for result
+    setQuizPhase('generating');
+    setTimeout(() => {
+      setQuizPhase('question');
+    }, 1500);
+  };
+
+  const handleSubmitAnswer = () => {
+    setQuizPhase('submitting');
+    setTimeout(() => {
+      setQuizPhase('result');
+    }, 1200);
+  };
 
   if (!sessionId) {
     return (
-      <Screen>
-        <TopBar title="세션 완료" />
-        <AppText variant="body">완료한 세션을 찾을 수 없습니다.</AppText>
-      </Screen>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top', 'bottom']}>
+        <View style={{ flex: 1, padding: 32 }}>
+          <AppText variant="body">완료한 세션을 찾을 수 없습니다.</AppText>
+        </View>
+      </SafeAreaView>
     );
   }
 
-  const session = detailQuery.data?.session;
+  const actualMinutes = session?.actualMinutes ?? session?.plannedMinutes ?? 0;
+  const mins = String(Math.floor(actualMinutes)).padStart(2, '0');
+  const secs = '00';
 
   return (
-    <Screen scroll>
-      <TopBar title="세션 완료" subtitle="세션이 완료되었어요." />
-
-      {detailQuery.isLoading ? (
-        <AppText variant="body">세션을 불러오는 중입니다.</AppText>
-      ) : detailQuery.isError ? (
-        <AppCard className="gap-4 bg-[#F6F6F4]">
-          <AppText variant="title">완료한 세션을 불러오지 못했습니다.</AppText>
-          <AppText variant="bodySmall" className="text-[#555555]">
-            {toApiError(detailQuery.error).message}
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top', 'bottom']}>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 32, paddingTop: 48, paddingBottom: 48 }}
+      >
+        {/* Completed time */}
+        <View style={{ alignItems: 'center', marginBottom: 12 }}>
+          <AppText
+            variant="hero"
+            style={{ fontSize: 72, lineHeight: 80, letterSpacing: -1, color: '#000' }}
+          >
+            {mins} : {secs}
           </AppText>
-          <AppButton label="다시 시도" variant="secondary" onPress={() => detailQuery.refetch()} />
-        </AppCard>
-      ) : session ? (
-        <View className="gap-8">
-          <View className="gap-3">
-            <AppText variant="caption" className="text-[#8A8A84] tracking-[0.8px]">
-              SESSION COMPLETE
-            </AppText>
-            <AppText variant="hero" className="text-[36px] leading-[40px]">
-              조용히 남았습니다.
-            </AppText>
-            <AppText variant="bodySmall" className="text-[#555555]">
-              무엇을 봤는지 짧게 적어두면 다음 흐름이 더 선명해집니다.
-            </AppText>
-          </View>
-
-          <SessionSummaryCard session={session} />
-
-          <View className="gap-3">
-            <AppButton
-              label="기록 남기기"
-              onPress={() =>
-                router.push({
-                  pathname: routes.sessionNoteModal,
-                  params: { sessionId },
-                })
-              }
-            />
-            <AppButton
-              label="나중에"
-              variant="secondary"
-              onPress={() => router.replace(routes.sessionDetail(sessionId))}
-            />
-          </View>
         </View>
-      ) : (
-        <AppText variant="body">완료한 세션을 찾을 수 없습니다.</AppText>
-      )}
-    </Screen>
+
+        {/* Topic */}
+        <AppText
+          variant="caption"
+          style={{ color: '#aaa', textAlign: 'center', marginBottom: 32, fontSize: 13 }}
+        >
+          {session?.topic ? `Topic: ${session.topic}` : ''}
+        </AppText>
+
+        {/* Memo textarea */}
+        <TextInput
+          value={memo}
+          onChangeText={setMemo}
+          placeholder="Briefly note what you learned..."
+          placeholderTextColor="#ccc"
+          multiline
+          style={{
+            minHeight: 120,
+            borderWidth: 1,
+            borderColor: '#d0d0d0',
+            padding: 16,
+            fontSize: 14,
+            lineHeight: 22,
+            color: '#000',
+            textAlignVertical: 'top',
+            marginBottom: 32,
+          }}
+        />
+
+        {/* Quiz section */}
+        {quizPhase === 'idle' && (
+          <View style={{ gap: 12 }}>
+            <AppButton
+              label="Let's Check"
+              onPress={handleLetsCheck}
+            />
+            <AppButton
+              label="Save to Archive"
+              variant="secondary"
+              disabled={noteMutation.isPending}
+              onPress={() => saveNoteAndNavigate('share')}
+            />
+            {hasMoreSessions && (
+              <AppButton
+                label={`다음 세션 시작 (${completedSessionCount}/${plannedSessionCount})`}
+                variant="secondary"
+                onPress={() => saveNoteAndNavigate('nextSession')}
+              />
+            )}
+          </View>
+        )}
+
+        {quizPhase === 'generating' && (
+          <View style={{ alignItems: 'center', gap: 12, paddingVertical: 24 }}>
+            <ActivityIndicator color="#000" />
+            <AppText variant="bodySmall" style={{ color: '#888' }}>
+              AI 회고 문제를 만드는 중입니다...
+            </AppText>
+          </View>
+        )}
+
+        {quizPhase === 'question' && (
+          <View style={{ gap: 16 }}>
+            <AppText variant="caption" style={{ color: '#888', letterSpacing: 0.6 }}>
+              REFLECT
+            </AppText>
+            <AppText variant="body" style={{ lineHeight: 24 }}>
+              {mockQuestion}
+            </AppText>
+            <TextInput
+              value={quizAnswer}
+              onChangeText={setQuizAnswer}
+              placeholder="답변을 입력하세요..."
+              placeholderTextColor="#ccc"
+              multiline
+              style={{
+                minHeight: 100,
+                borderWidth: 1,
+                borderColor: '#d0d0d0',
+                padding: 16,
+                fontSize: 14,
+                lineHeight: 22,
+                color: '#000',
+                textAlignVertical: 'top',
+              }}
+            />
+            <AppButton
+              label="제출"
+              disabled={quizAnswer.trim().length === 0}
+              onPress={handleSubmitAnswer}
+            />
+          </View>
+        )}
+
+        {quizPhase === 'submitting' && (
+          <View style={{ alignItems: 'center', gap: 12, paddingVertical: 24 }}>
+            <ActivityIndicator color="#000" />
+            <AppText variant="bodySmall" style={{ color: '#888' }}>
+              채점 중입니다...
+            </AppText>
+          </View>
+        )}
+
+        {quizPhase === 'result' && (
+          <View style={{ gap: 16 }}>
+            <View
+              style={{
+                borderWidth: 1,
+                borderColor: '#e0e0e0',
+                padding: 20,
+                gap: 8,
+              }}
+            >
+              <AppText variant="caption" style={{ color: '#888' }}>
+                AI SCORE
+              </AppText>
+              <AppText
+                variant="hero"
+                style={{ fontSize: 48, lineHeight: 56, letterSpacing: -0.5 }}
+              >
+                {mockScore}
+              </AppText>
+              <AppText variant="bodySmall" style={{ color: '#555' }}>
+                {mockFeedback}
+              </AppText>
+            </View>
+            <AppButton
+              label="Save to Archive"
+              disabled={noteMutation.isPending}
+              onPress={() => saveNoteAndNavigate('share')}
+            />
+            {hasMoreSessions && (
+              <AppButton
+                label={`다음 세션 시작 (${completedSessionCount}/${plannedSessionCount})`}
+                variant="secondary"
+                onPress={() => saveNoteAndNavigate('nextSession')}
+              />
+            )}
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }

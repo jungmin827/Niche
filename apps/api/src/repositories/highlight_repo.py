@@ -47,6 +47,13 @@ class HighlightRepository(Protocol):
 
     async def count_highlights(self, *, profile_id: str, visibility: str | None) -> int: ...
 
+    async def list_public_highlights(
+        self,
+        *,
+        cursor: str | None,
+        limit: int,
+    ) -> tuple[list[HighlightRecord], str | None, bool]: ...
+
 
 def _normalize_timestamp(value: datetime) -> datetime:
     if value.tzinfo is None:
@@ -138,6 +145,33 @@ class InMemoryHighlightRepository:
                 and (visibility is None or highlight.visibility == visibility)
             ]
         )
+
+    async def list_public_highlights(
+        self,
+        *,
+        cursor: str | None,
+        limit: int,
+    ) -> tuple[list[HighlightRecord], str | None, bool]:
+        highlights = [
+            h for h in self._highlights.values() if h.visibility == "public"
+        ]
+        highlights.sort(key=lambda h: (_normalize_timestamp(h.published_at), h.id), reverse=True)
+
+        if cursor:
+            cursor_published_at, cursor_id = _decode_cursor(cursor)
+            highlights = [
+                h
+                for h in highlights
+                if (_normalize_timestamp(h.published_at), h.id) < (cursor_published_at, cursor_id)
+            ]
+
+        page = highlights[:limit]
+        has_next = len(highlights) > limit
+        next_cursor = None
+        if has_next and page:
+            last_item = page[-1]
+            next_cursor = _encode_cursor(last_item.published_at, last_item.id)
+        return page, next_cursor, has_next
 
 
 class PostgresHighlightRepository:
@@ -233,6 +267,40 @@ class PostgresHighlightRepository:
         async with self._session_factory() as db:
             count = (await db.execute(statement)).scalar_one()
             return int(count)
+
+    async def list_public_highlights(
+        self,
+        *,
+        cursor: str | None,
+        limit: int,
+    ) -> tuple[list[HighlightRecord], str | None, bool]:
+        statement: Select[tuple[HighlightTable]] = (
+            select(HighlightTable)
+            .where(
+                HighlightTable.visibility == VisibilityDBEnum.PUBLIC,
+                HighlightTable.deleted_at.is_(None),
+            )
+            .order_by(HighlightTable.published_at.desc(), HighlightTable.id.desc())
+        )
+
+        if cursor:
+            cursor_published_at, cursor_id = _decode_cursor(cursor)
+            statement = statement.where(
+                or_(
+                    HighlightTable.published_at < cursor_published_at,
+                    and_(HighlightTable.published_at == cursor_published_at, HighlightTable.id < cursor_id),
+                )
+            )
+
+        async with self._session_factory() as db:
+            rows = (await db.execute(statement.limit(limit + 1))).scalars().all()
+            has_next = len(rows) > limit
+            page_rows = rows[:limit]
+            next_cursor = None
+            if has_next and page_rows:
+                last_item = page_rows[-1]
+                next_cursor = _encode_cursor(last_item.published_at, last_item.id)
+            return [self._to_highlight_record(row) for row in page_rows], next_cursor, has_next
 
     def _build_highlight_table(self, highlight: HighlightRecord) -> HighlightTable:
         return HighlightTable(

@@ -1,20 +1,17 @@
 import { router } from 'expo-router';
-import { useEffect } from 'react';
-import { Alert, View } from 'react-native';
-import Screen from '../../../components/layout/Screen';
-import TopBar from '../../../components/layout/TopBar';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import SessionTimer from '../../../components/session/SessionTimer';
 import AppButton from '../../../components/ui/AppButton';
-import AppCard from '../../../components/ui/AppCard';
 import AppText from '../../../components/ui/AppText';
 import { routes } from '../../../constants/routes';
-import { toApiError } from '../../../lib/error';
 import {
   useCancelSessionMutation,
   useCompleteSessionMutation,
-  useSessionDetailQuery,
   useSessionStore,
 } from '../hooks';
+import { writeSessionNoteDraft } from '../utils';
 
 export default function SessionActiveScreen() {
   const activeSessionId = useSessionStore((state) => state.activeSessionId);
@@ -22,116 +19,144 @@ export default function SessionActiveScreen() {
   const activeSessionPlannedMinutes = useSessionStore((state) => state.activeSessionPlannedMinutes);
   const activeSessionTopic = useSessionStore((state) => state.activeSessionTopic);
   const activeSessionSubject = useSessionStore((state) => state.activeSessionSubject);
-  const clearActiveSession = useSessionStore((state) => state.clearActiveSession);
+  const incrementCompleted = useSessionStore((state) => state.incrementCompletedSessionCount);
+
   const completeMutation = useCompleteSessionMutation();
   const cancelMutation = useCancelSessionMutation();
-  const sessionDetailQuery = useSessionDetailQuery(activeSessionId ?? '');
 
+  const [memo, setMemo] = useState('');
+  const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-save memo draft with debounce
   useEffect(() => {
-    if (sessionDetailQuery.data?.session.status && sessionDetailQuery.data.session.status !== 'active') {
-      clearActiveSession();
-    }
-  }, [clearActiveSession, sessionDetailQuery.data?.session.status]);
+    if (!activeSessionId) return;
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    saveTimeout.current = setTimeout(() => {
+      void writeSessionNoteDraft(activeSessionId, { summary: memo, insight: '' });
+    }, 800);
+    return () => {
+      if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    };
+  }, [memo, activeSessionId]);
 
   if (!activeSessionId || !activeSessionStartedAt || !activeSessionPlannedMinutes || !activeSessionTopic) {
     return (
-      <Screen>
-        <TopBar title="세션" />
-        <View className="flex-1 items-center justify-center gap-4">
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top', 'bottom']}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 }}>
           <AppText variant="body">진행 중인 세션이 없습니다.</AppText>
           <AppButton label="세션으로" onPress={() => router.replace(routes.sessionHome)} />
         </View>
-      </Screen>
+      </SafeAreaView>
     );
   }
 
-  if (sessionDetailQuery.isLoading && !sessionDetailQuery.data) {
-    return (
-      <Screen>
-        <TopBar title="진행 중인 세션" />
-        <View className="flex-1 items-center justify-center">
-          <AppText variant="body">세션 상태를 확인하는 중입니다.</AppText>
-        </View>
-      </Screen>
-    );
-  }
+  const handleComplete = () => {
+    Alert.alert('세션을 완료할까요?', '', [
+      { text: '계속하기', style: 'cancel' },
+      {
+        text: '완료',
+        onPress: async () => {
+          // Save memo draft before completing
+          if (memo.trim().length > 0) {
+            await writeSessionNoteDraft(activeSessionId, { summary: memo, insight: '' });
+          }
+          const response = await completeMutation.mutateAsync(activeSessionId);
+          incrementCompleted();
+          router.replace({
+            pathname: routes.sessionComplete,
+            params: { sessionId: response.session.id },
+          });
+        },
+      },
+    ]);
+  };
 
-  if (sessionDetailQuery.isError) {
-    return (
-      <Screen>
-        <TopBar title="진행 중인 세션" />
-        <AppCard className="gap-4 bg-[#F6F6F4]">
-          <AppText variant="title">세션 상태를 불러오지 못했습니다.</AppText>
-          <AppText variant="bodySmall" className="text-[#555555]">
-            {toApiError(sessionDetailQuery.error).message}
-          </AppText>
-          <AppButton label="다시 시도" variant="secondary" onPress={() => sessionDetailQuery.refetch()} />
-        </AppCard>
-      </Screen>
-    );
-  }
+  const handleCancel = () => {
+    Alert.alert('세션을 취소할까요?', '지금까지의 기록은 저장되지 않습니다.', [
+      { text: '계속하기', style: 'cancel' },
+      {
+        text: '취소',
+        style: 'destructive',
+        onPress: async () => {
+          await cancelMutation.mutateAsync(activeSessionId);
+          router.replace(routes.sessionHome);
+        },
+      },
+    ]);
+  };
 
   return (
-    <Screen>
-      <TopBar
-        leadingLabel="나가기"
-        onLeadingPress={() => router.replace(routes.sessionHome)}
-        title="진행 중인 세션"
-        subtitle="시간과 주제만 또렷하게 남겨둡니다."
-      />
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top', 'bottom']}>
+      <View style={{ flex: 1 }}>
+        {/* Upper area — timer + controls */}
+        <View
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: 32,
+            gap: 12,
+          }}
+        >
+          {activeSessionSubject ? (
+            <AppText variant="caption" style={{ color: '#aaa', letterSpacing: 0.5 }}>
+              {activeSessionSubject}
+            </AppText>
+          ) : null}
 
-      <View className="flex-1 justify-between gap-10">
-        <View className="gap-10">
-          <AppCard className="items-center gap-8 py-12">
-            <View className="items-center gap-3">
-              <AppText variant="caption" className="text-[#8A8A84] tracking-[0.8px]">
-                {activeSessionSubject || '오늘의 주제'}
-              </AppText>
-              <AppText variant="title" className="text-center text-[24px] leading-[30px]">
-                {activeSessionTopic}
-              </AppText>
-            </View>
-
-            <SessionTimer plannedMinutes={activeSessionPlannedMinutes} startedAt={activeSessionStartedAt} />
-          </AppCard>
-
-          <AppText variant="bodySmall" className="px-6 text-center text-[#555555]">
-            {activeSessionPlannedMinutes}분 동안 한 가지에 머물러보세요.
+          <AppText
+            variant="title"
+            style={{ textAlign: 'center', fontSize: 18, marginBottom: 8 }}
+            numberOfLines={2}
+          >
+            {activeSessionTopic}
           </AppText>
+
+          <SessionTimer
+            startedAt={activeSessionStartedAt}
+            plannedMinutes={activeSessionPlannedMinutes}
+            mode="elapsed"
+          />
+
+          <View style={{ marginTop: 20, width: '100%', gap: 10 }}>
+            <AppButton
+              label={completeMutation.isPending ? '완료 중...' : 'Stop / Complete'}
+              disabled={completeMutation.isPending}
+              onPress={handleComplete}
+            />
+            <AppButton
+              label="취소"
+              variant="secondary"
+              disabled={cancelMutation.isPending}
+              onPress={handleCancel}
+            />
+          </View>
         </View>
 
-        <View className="gap-3">
-          <AppButton
-            disabled={completeMutation.isPending}
-            label="완료하기"
-            onPress={async () => {
-              const response = await completeMutation.mutateAsync(activeSessionId);
-              router.replace({
-                pathname: routes.sessionComplete,
-                params: { sessionId: response.session.id },
-              });
+        {/* Divider */}
+        <View style={{ height: 1, backgroundColor: '#e5e5e5', marginHorizontal: 32 }} />
+
+        {/* Lower area — memo */}
+        <View style={{ flex: 1, paddingHorizontal: 32, paddingVertical: 20 }}>
+          <TextInput
+            value={memo}
+            onChangeText={setMemo}
+            placeholder="Write down your thoughts, insights, or observations..."
+            placeholderTextColor="#ccc"
+            multiline
+            style={{
+              flex: 1,
+              fontSize: 14,
+              lineHeight: 22,
+              color: '#000',
+              textAlignVertical: 'top',
+              borderWidth: 1,
+              borderColor: '#e0e0e0',
+              padding: 16,
             }}
-          />
-          <AppButton
-            disabled={cancelMutation.isPending}
-            label="그만두기"
-            variant="secondary"
-            onPress={() =>
-              Alert.alert('세션을 닫을까요?', '지금 세션은 취소됩니다.', [
-                { text: '계속 보기', style: 'cancel' },
-                {
-                  text: '그만두기',
-                  style: 'destructive',
-                  onPress: async () => {
-                    await cancelMutation.mutateAsync(activeSessionId);
-                    router.replace(routes.sessionHome);
-                  },
-                },
-              ])
-            }
           />
         </View>
       </View>
-    </Screen>
+    </SafeAreaView>
   );
 }
