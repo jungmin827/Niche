@@ -22,6 +22,12 @@ class QuizRepository(Protocol):
 
     async def create_attempt(self, *, attempt: QuizAttemptRecord) -> QuizAttemptRecord: ...
 
+    async def get_attempt_by_quiz(self, *, quiz_id: str) -> QuizAttemptRecord | None: ...
+
+    async def get_attempt(self, *, attempt_id: str) -> QuizAttemptRecord | None: ...
+
+    async def get_job_by_session_id(self, *, session_id: str) -> QuizJobRecord | None: ...
+
 
 class InMemoryQuizRepository:
     def __init__(self) -> None:
@@ -56,3 +62,18 @@ class InMemoryQuizRepository:
     async def create_attempt(self, *, attempt: QuizAttemptRecord) -> QuizAttemptRecord:
         self._attempts[attempt.id] = attempt
         return attempt
+
+    async def get_attempt_by_quiz(self, *, quiz_id: str) -> QuizAttemptRecord | None:
+        for attempt in self._attempts.values():
+            if attempt.quiz_id == quiz_id:
+                return attempt
+        return None
+
+    async def get_attempt(self, *, attempt_id: str) -> QuizAttemptRecord | None:
+        return self._attempts.get(attempt_id)
+
+    async def get_job_by_session_id(self, *, session_id: str) -> QuizJobRecord | None:
+        for job in self._jobs.values():
+            if job.session_id == session_id and job.status == "done":
+                return job
+        return None

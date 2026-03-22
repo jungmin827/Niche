@@ -9,5 +9,5 @@ class QuizRecord:
     id: str
     session_id: str
     profile_id: str
-    question: str
+    questions: list        # list[QuizQuestion] at runtime — typed loosely to avoid circular import
     created_at: datetime

@@ -2,15 +2,18 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, status
 
-from src.dependencies.repositories import get_quiz_repository, get_session_repository
+from src.ai.base import AIProvider
+from src.dependencies.repositories import get_ai_provider, get_quiz_repository, get_session_repository
 from src.repositories.quiz_job_repo import QuizRepository
 from src.repositories.session_repo import SessionRepository
 from src.schemas.quiz import (
     QuizAttemptCreateRequest,
+    QuizAttemptDetailDTO,
     QuizAttemptResponse,
     QuizJobCreateRequest,
     QuizJobResponse,
     QuizResponse,
+    SessionQuizResultResponse,
 )
 from src.security import AuthenticatedUser, get_current_user
 from src.services.quiz_service import QuizService
@@ -21,14 +24,26 @@ router = APIRouter(prefix="/v1", tags=["quizzes"])
 def get_quiz_service(
     quiz_repository: QuizRepository = Depends(get_quiz_repository),
     session_repository: SessionRepository = Depends(get_session_repository),
+    ai_provider: AIProvider = Depends(get_ai_provider),
 ) -> QuizService:
     return QuizService(
         quiz_repository=quiz_repository,
         session_repository=session_repository,
+        ai_provider=ai_provider,
     )
 
 
-@router.post("/quizzes/jobs", response_model=QuizJobResponse, status_code=status.HTTP_201_CREATED)
+@router.get("/sessions/{session_id}/quiz-result", response_model=SessionQuizResultResponse)
+async def get_session_quiz_result(
+    session_id: str,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+    service: QuizService = Depends(get_quiz_service),
+) -> SessionQuizResultResponse:
+    score = await service.get_session_quiz_score(session_id)
+    return SessionQuizResultResponse(total_score=score)
+
+
+@router.post("/quizzes/jobs", response_model=QuizJobResponse, status_code=status.HTTP_202_ACCEPTED)
 async def create_quiz_job(
     payload: QuizJobCreateRequest,
     current_user: AuthenticatedUser = Depends(get_current_user),
@@ -53,6 +68,20 @@ async def get_quiz(
     service: QuizService = Depends(get_quiz_service),
 ) -> QuizResponse:
     return await service.get_quiz(current_user=current_user, quiz_id=quiz_id)
+
+
+@router.get("/quizzes/{quiz_id}/attempts/{attempt_id}", response_model=QuizAttemptDetailDTO)
+async def get_quiz_attempt(
+    quiz_id: str,
+    attempt_id: str,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+    service: QuizService = Depends(get_quiz_service),
+) -> QuizAttemptDetailDTO:
+    return await service.get_attempt(
+        current_user=current_user,
+        quiz_id=quiz_id,
+        attempt_id=attempt_id,
+    )
 
 
 @router.post(

@@ -6,23 +6,28 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from src import error_codes
-from src.exceptions import ConflictError, ForbiddenError, NotFoundError
+from src.ai.base import AIProvider, QuizQuestion
+from src.exceptions import ConflictError, ForbiddenError, NotFoundError, ServiceUnavailableAppError
+from src.middleware.request_id import get_request_id
 from src.models.quiz import QuizRecord
 from src.models.quiz_attempt import QuizAttemptRecord
 from src.models.quiz_job import QuizJobRecord
 from src.repositories.quiz_job_repo import QuizRepository
 from src.repositories.session_repo import SessionRepository
 from src.schemas.quiz import (
+    QuizAnswerGradeDTO,
     QuizAttemptCreateRequest,
+    QuizAttemptDetailDTO,
     QuizAttemptDTO,
+    QuizAttemptGradeDetailDTO,
     QuizAttemptResponse,
     QuizDTO,
     QuizJobCreateRequest,
     QuizJobDTO,
     QuizJobResponse,
+    QuizQuestionDTO,
     QuizResponse,
 )
-from src.middleware.request_id import get_request_id
 from src.security import AuthenticatedUser
 
 logger = logging.getLogger("niche.quiz")
@@ -32,15 +37,41 @@ def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _quiz_questions_to_dto(questions: list) -> list[QuizQuestionDTO]:
+    return [
+        QuizQuestionDTO(
+            sequence_no=q.sequence_no,
+            question_type=q.question_type,
+            intent_label=q.intent_label,
+            prompt_text=q.prompt_text,
+        )
+        for q in questions
+    ]
+
+
+def _grade_dtos(question_grades: list) -> list[QuizAnswerGradeDTO]:
+    return [
+        QuizAnswerGradeDTO(
+            sequence_no=g.sequence_no,
+            score=g.score,
+            max_score=g.max_score,
+            comment=g.comment,
+        )
+        for g in question_grades
+    ]
+
+
 class QuizService:
     def __init__(
         self,
         *,
         quiz_repository: QuizRepository,
         session_repository: SessionRepository,
+        ai_provider: AIProvider,
     ) -> None:
         self._quiz_repository = quiz_repository
         self._session_repository = session_repository
+        self._ai_provider = ai_provider
 
     async def create_job(
         self,
@@ -66,37 +97,76 @@ class QuizService:
                 message="A quiz already exists for this session.",
             )
 
-        now = _utc_now()
-        # TODO: replace with real AI call — currently creates a stub quiz synchronously
-        quiz = await self._quiz_repository.create_quiz(
-            quiz=QuizRecord(
-                id=str(uuid4()),
-                session_id=payload.session_id,
-                profile_id=current_user.profile_id,
-                question=_build_stub_question(topic=session.topic, subject=session.subject),
-                created_at=now,
+        note = await self._session_repository.get_note(session_id=payload.session_id)
+        if note is None:
+            raise ConflictError(
+                code=error_codes.QUIZ_SOURCE_NOT_READY,
+                message="Session note is required before generating a quiz.",
             )
-        )
 
+        now = _utc_now()
         job = await self._quiz_repository.create_job(
             job=QuizJobRecord(
                 id=str(uuid4()),
                 session_id=payload.session_id,
                 profile_id=current_user.profile_id,
-                status="done",
-                quiz_id=quiz.id,
+                status="processing",
+                quiz_id=None,
                 created_at=now,
                 updated_at=now,
             )
         )
         logger.info(
-            "request_id=%s event=quiz.job.create job_id=%s quiz_id=%s session_id=%s",
+            "request_id=%s event=quiz.job.start job_id=%s session_id=%s",
             get_request_id(),
             job.id,
+            payload.session_id,
+        )
+
+        try:
+            generated = await self._ai_provider.generate_quiz(
+                session_topic=session.topic,
+                session_subject=session.subject,
+                session_summary=note.summary,
+                session_insight=note.insight,
+                session_mood=note.mood,
+                session_tags=note.tags,
+            )
+        except RuntimeError as exc:
+            logger.exception(
+                "request_id=%s event=quiz.generation.failed job_id=%s reason=%s",
+                get_request_id(),
+                job.id,
+                exc,
+            )
+            failed_job = replace(job, status="failed", updated_at=_utc_now())
+            await self._quiz_repository.update_job(job=failed_job)
+            raise ServiceUnavailableAppError(
+                "Quiz generation failed. Please try again later.",
+                details={"jobId": job.id},
+            ) from exc
+
+        quiz = await self._quiz_repository.create_quiz(
+            quiz=QuizRecord(
+                id=str(uuid4()),
+                session_id=payload.session_id,
+                profile_id=current_user.profile_id,
+                questions=generated.questions,
+                created_at=_utc_now(),
+            )
+        )
+
+        done_job = replace(job, status="done", quiz_id=quiz.id, updated_at=_utc_now())
+        done_job = await self._quiz_repository.update_job(job=done_job)
+
+        logger.info(
+            "request_id=%s event=quiz.job.done job_id=%s quiz_id=%s session_id=%s",
+            get_request_id(),
+            done_job.id,
             quiz.id,
             payload.session_id,
         )
-        return QuizJobResponse(job=QuizJobDTO(id=job.id, status=job.status, quizId=job.quiz_id))
+        return QuizJobResponse(job=QuizJobDTO(id=done_job.id, status=done_job.status, quiz_id=done_job.quiz_id))
 
     async def get_job(
         self,
@@ -112,7 +182,7 @@ class QuizService:
             )
         if job.profile_id != current_user.profile_id:
             raise ForbiddenError()
-        return QuizJobResponse(job=QuizJobDTO(id=job.id, status=job.status, quizId=job.quiz_id))
+        return QuizJobResponse(job=QuizJobDTO(id=job.id, status=job.status, quiz_id=job.quiz_id))
 
     async def get_quiz(
         self,
@@ -128,12 +198,14 @@ class QuizService:
             )
         if quiz.profile_id != current_user.profile_id:
             raise ForbiddenError()
-        return QuizResponse(quiz=QuizDTO(
-            id=quiz.id,
-            sessionId=quiz.session_id,
-            question=quiz.question,
-            createdAt=quiz.created_at,
-        ))
+        return QuizResponse(
+            quiz=QuizDTO(
+                id=quiz.id,
+                session_id=quiz.session_id,
+                questions=_quiz_questions_to_dto(quiz.questions),
+                created_at=quiz.created_at,
+            )
+        )
 
     async def submit_attempt(
         self,
@@ -151,39 +223,118 @@ class QuizService:
         if quiz.profile_id != current_user.profile_id:
             raise ForbiddenError()
 
-        now = _utc_now()
-        # TODO: replace with real AI scoring — currently returns a fixed stub score
+        existing = await self._quiz_repository.get_attempt_by_quiz(quiz_id=quiz_id)
+        if existing is not None:
+            raise ConflictError(
+                code=error_codes.QUIZ_ALREADY_ATTEMPTED,
+                message="This quiz has already been submitted.",
+            )
+
+        if len(payload.answers) != 3:
+            raise ValueError("Expected exactly 3 answers")
+
+        session = await self._session_repository.get_session(session_id=quiz.session_id)
+        note = await self._session_repository.get_note(session_id=quiz.session_id)
+        session_summary = note.summary if note else (session.topic or "")
+        session_insight = note.insight if note else None
+
+        questions: list[QuizQuestion] = quiz.questions
+
+        try:
+            grading = await self._ai_provider.grade_quiz(
+                session_summary=session_summary,
+                session_insight=session_insight,
+                questions=questions,
+                answers=payload.answers,
+            )
+        except RuntimeError as exc:
+            logger.exception(
+                "request_id=%s event=quiz.grading.failed quiz_id=%s reason=%s",
+                get_request_id(),
+                quiz_id,
+                exc,
+            )
+            raise ServiceUnavailableAppError(
+                "Quiz grading failed. Please try again later.",
+                details={"quizId": quiz_id},
+            ) from exc
+
         attempt = await self._quiz_repository.create_attempt(
             attempt=QuizAttemptRecord(
                 id=str(uuid4()),
                 quiz_id=quiz_id,
                 profile_id=current_user.profile_id,
-                answer=payload.answer,
-                score=70,
-                feedback="잘 정리된 답변입니다. 핵심 개념을 잘 파악하셨어요.",
-                created_at=now,
+                answers=payload.answers,
+                total_score=grading.total_score,
+                overall_feedback=grading.overall_comment,
+                question_grades=grading.question_grades,
+                created_at=_utc_now(),
             )
         )
         logger.info(
-            "request_id=%s event=quiz.attempt.submit attempt_id=%s quiz_id=%s score=%s",
+            "request_id=%s event=quiz.attempt.submit attempt_id=%s quiz_id=%s total_score=%s",
             get_request_id(),
             attempt.id,
             quiz_id,
-            attempt.score,
+            attempt.total_score,
         )
         return QuizAttemptResponse(
             attempt=QuizAttemptDTO(
                 id=attempt.id,
-                quizId=attempt.quiz_id,
-                answer=attempt.answer,
-                score=attempt.score,
-                feedback=attempt.feedback,
-                createdAt=attempt.created_at,
+                quiz_id=attempt.quiz_id,
+                answers=attempt.answers,
+                total_score=attempt.total_score,
+                overall_feedback=attempt.overall_feedback,
+                question_grades=_grade_dtos(attempt.question_grades),
+                created_at=attempt.created_at,
             )
         )
 
+    async def get_session_quiz_score(self, session_id: str) -> int | None:
+        job = await self._quiz_repository.get_job_by_session_id(session_id=session_id)
+        if job is None or job.quiz_id is None:
+            return None
+        attempt = await self._quiz_repository.get_attempt_by_quiz(quiz_id=job.quiz_id)
+        if attempt is None:
+            return None
+        return attempt.total_score
 
-def _build_stub_question(*, topic: str | None, subject: str | None) -> str:
-    # TODO: replace with AI-generated question from session note content
-    label = subject or topic or "이번 세션"
-    return f"{label}에서 가장 중요하게 느낀 점을 한 문장으로 설명해보세요."
+    async def get_attempt(
+        self,
+        *,
+        current_user: AuthenticatedUser,
+        quiz_id: str,
+        attempt_id: str,
+    ) -> QuizAttemptDetailDTO:
+        quiz = await self._quiz_repository.get_quiz(quiz_id=quiz_id)
+        if quiz is None:
+            raise NotFoundError(
+                code=error_codes.QUIZ_NOT_FOUND,
+                message="Quiz not found.",
+            )
+        if quiz.profile_id != current_user.profile_id:
+            raise ForbiddenError()
+
+        attempt = await self._quiz_repository.get_attempt(attempt_id=attempt_id)
+        if attempt is None or attempt.quiz_id != quiz_id:
+            raise NotFoundError(
+                code=error_codes.NOT_FOUND,
+                message="Attempt not found.",
+            )
+
+        return QuizAttemptDetailDTO(
+            attempt_id=attempt.id,
+            quiz_id=attempt.quiz_id,
+            total_score=attempt.total_score,
+            overall_feedback=attempt.overall_feedback,
+            question_grades=[
+                QuizAttemptGradeDetailDTO(
+                    question_id=str(g.sequence_no),
+                    order=g.sequence_no,
+                    score=g.score,
+                    max_score=g.max_score,
+                    feedback=g.comment,
+                )
+                for g in attempt.question_grades
+            ],
+        )
