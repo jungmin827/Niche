@@ -13,6 +13,8 @@ class BlogPostRepository(Protocol):
 
     async def list_by_author(self, author_id: str) -> list[BlogPostRecord]: ...
 
+    async def list_all_public(self, limit: int = 50) -> list[BlogPostRecord]: ...
+
     async def update(self, post_id: str, **fields) -> BlogPostRecord | None: ...
 
     async def soft_delete(self, post_id: str) -> bool: ...
@@ -48,6 +50,14 @@ class InMemoryBlogPostRepository:
                 object.__setattr__(record, key, value)
         object.__setattr__(record, "updated_at", now)
         return record
+
+    async def list_all_public(self, limit: int = 50) -> list[BlogPostRecord]:
+        results = [
+            r for r in self._posts.values()
+            if r.visibility == "public" and r.deleted_at is None
+        ]
+        results.sort(key=lambda r: r.published_at, reverse=True)
+        return results[:limit]
 
     async def soft_delete(self, post_id: str) -> bool:
         record = self._posts.get(post_id)
