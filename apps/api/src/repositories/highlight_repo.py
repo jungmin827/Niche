@@ -2,14 +2,18 @@ from __future__ import annotations
 
 import base64
 import json
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from typing import Any, Protocol
+
 try:
     from sqlalchemy import Select, and_, func, or_, select
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
     from src.models.base import HighlightSourceTypeDBEnum, VisibilityDBEnum
     from src.models.highlight_tables import HighlightTable
+    from src.models.profile_table import ProfileTable
+    from src.models.session_tables import SessionTable
 except ModuleNotFoundError:  # pragma: no cover - exercised only in minimal local envs
     Select = Any
     AsyncSession = Any
@@ -21,8 +25,19 @@ except ModuleNotFoundError:  # pragma: no cover - exercised only in minimal loca
     HighlightSourceTypeDBEnum = None
     VisibilityDBEnum = None
     HighlightTable = None
+    ProfileTable = None
+    SessionTable = None
 
 from src.models.highlight import HighlightRecord
+
+
+@dataclass
+class WaveItemRow:
+    highlight_id: str
+    title: str
+    author_handle: str
+    topic: str | None
+    rendered_image_path: str
 
 
 class HighlightRepository(Protocol):
@@ -55,6 +70,8 @@ class HighlightRepository(Protocol):
         cursor: str | None,
         limit: int,
     ) -> tuple[list[HighlightRecord], str | None, bool]: ...
+
+    async def get_wave_items(self, *, limit: int) -> list[WaveItemRow]: ...
 
 
 def _normalize_timestamp(value: datetime) -> datetime:
@@ -180,6 +197,10 @@ class InMemoryHighlightRepository:
             last_item = page[-1]
             next_cursor = _encode_cursor(last_item.published_at, last_item.id)
         return page, next_cursor, has_next
+
+    async def get_wave_items(self, *, limit: int) -> list[WaveItemRow]:
+        # In-memory backend has no profile/session join — return empty list.
+        return []
 
 
 class PostgresHighlightRepository:
@@ -309,6 +330,40 @@ class PostgresHighlightRepository:
                 last_item = page_rows[-1]
                 next_cursor = _encode_cursor(last_item.published_at, last_item.id)
             return [self._to_highlight_record(row) for row in page_rows], next_cursor, has_next
+
+    async def get_wave_items(self, *, limit: int) -> list[WaveItemRow]:
+        _require_sqlalchemy()
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+        stmt = (
+            select(
+                HighlightTable.id,
+                HighlightTable.title,
+                HighlightTable.rendered_image_path,
+                ProfileTable.handle,
+                SessionTable.topic,
+            )
+            .join(ProfileTable, ProfileTable.id == HighlightTable.profile_id)
+            .outerjoin(SessionTable, SessionTable.id == HighlightTable.session_id)
+            .where(
+                HighlightTable.visibility == VisibilityDBEnum.PUBLIC,
+                HighlightTable.created_at >= cutoff,
+                HighlightTable.deleted_at.is_(None),
+            )
+            .order_by(func.random())
+            .limit(limit)
+        )
+        async with self._session_factory() as db:
+            rows = (await db.execute(stmt)).all()
+        return [
+            WaveItemRow(
+                highlight_id=row[0],
+                title=row[1],
+                rendered_image_path=row[2],
+                author_handle=row[3],
+                topic=row[4],
+            )
+            for row in rows
+        ]
 
     def _build_highlight_table(self, highlight: HighlightRecord) -> HighlightTable:
         return HighlightTable(
