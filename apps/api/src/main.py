@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -19,37 +18,9 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message
 logger = logging.getLogger("niche.app")
 
 
-async def _feed_cleanup_loop() -> None:
-    """Background task: delete expired feed posts every 10 minutes."""
-    from src.dependencies.repositories import (
-        _memory_feed_post_repository,
-        _memory_profile_repository,
-    )
-    from src.services.feed_post_service import FeedPostService
-
-    service = FeedPostService(
-        feed_post_repository=_memory_feed_post_repository,
-        profile_repository=_memory_profile_repository,
-    )
-    while True:
-        await asyncio.sleep(600)
-        try:
-            await service.cleanup_expired_posts()
-        except Exception:
-            logger.exception("event=feed.cleanup.error")
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    task = asyncio.create_task(_feed_cleanup_loop())
-    logger.info("event=feed.cleanup.started interval_seconds=600")
     yield
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
-    logger.info("event=feed.cleanup.stopped")
 
 
 def create_app() -> FastAPI:

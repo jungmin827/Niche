@@ -8,7 +8,9 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+from src.config import get_settings
 from src.models import highlight_tables, session_tables
+from src.models import profile_table, blog_post_table, quiz_tables  # noqa: F401 — register ORM tables
 from src.models.base import Base
 
 config = context.config
@@ -18,7 +20,9 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
-database_url = os.getenv("NICHE_DATABASE_URL")
+# Load DATABASE_URL from .env via pydantic-settings (NICHE_DATABASE_URL)
+_settings = get_settings()
+database_url = _settings.database_url or os.getenv("NICHE_DATABASE_URL")
 if database_url:
     # configparser treats % as interpolation marker — escape it with %%
     config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))

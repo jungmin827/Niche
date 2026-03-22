@@ -16,6 +16,7 @@ You are implementing backend code for NichE inside `apps/api`.
 
 ## Rules
 - async-first throughout
+- use .venv and uv package manager
 - No direct raw DB logic in routers
 - No vague placeholder code unless explicitly marked `# TODO:`
 - Keep changes small and reviewable
