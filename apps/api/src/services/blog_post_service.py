@@ -1,0 +1,58 @@
+from __future__ import annotations
+
+from src.config import Settings
+from src.models.blog_post import BlogPostRecord
+from src.repositories.blog_post_repo import BlogPostRepository
+
+
+class BlogPostService:
+    def __init__(self, repo: BlogPostRepository, settings: Settings) -> None:
+        self._repo = repo
+        self._settings = settings
+
+    def _resolve_cover_url(self, path: str | None) -> str | None:
+        if path is None:
+            return None
+        return f"{self._settings.storage_public_base_url}/{path}"
+
+    async def create(
+        self,
+        author_id: str,
+        title: str,
+        body_md: str,
+        excerpt: str | None,
+        cover_image_path: str | None,
+        visibility: str,
+    ) -> BlogPostRecord:
+        record = BlogPostRecord(
+            author_id=author_id,
+            title=title,
+            body_md=body_md,
+            excerpt=excerpt,
+            cover_image_path=cover_image_path,
+            visibility=visibility,
+        )
+        return await self._repo.create(record)
+
+    async def get_by_id(self, post_id: str) -> BlogPostRecord | None:
+        return await self._repo.get_by_id(post_id)
+
+    async def list_by_author(self, author_id: str) -> list[BlogPostRecord]:
+        return await self._repo.list_by_author(author_id)
+
+    async def update(
+        self,
+        post_id: str,
+        author_id: str,
+        **fields,
+    ) -> BlogPostRecord | None:
+        record = await self._repo.get_by_id(post_id)
+        if record is None or record.author_id != author_id:
+            return None
+        return await self._repo.update(post_id, **fields)
+
+    async def delete(self, post_id: str, author_id: str) -> bool:
+        record = await self._repo.get_by_id(post_id)
+        if record is None or record.author_id != author_id:
+            return False
+        return await self._repo.soft_delete(post_id)
