@@ -1,6 +1,6 @@
 import { Text, TextProps } from 'react-native';
 
-type Variant = 'hero' | 'title' | 'body' | 'button';
+type Variant = 'hero' | 'title' | 'body' | 'bodySmall' | 'caption' | 'button';
 type Color = 'primary' | 'inverse';
 
 type Props = TextProps & {
@@ -12,6 +12,8 @@ const variantClassMap: Record<Variant, string> = {
   hero: 'text-[32px] leading-[38px] font-medium',
   title: 'text-[20px] leading-[26px] font-medium',
   body: 'text-[16px] leading-[24px] font-normal',
+  bodySmall: 'text-[14px] leading-[20px] font-normal',
+  caption: 'text-[12px] leading-[18px] font-normal',
   button: 'text-[16px] leading-[20px] font-medium',
 };
 
