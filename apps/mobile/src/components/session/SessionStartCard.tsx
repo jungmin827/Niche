@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 import {
   Gesture,
   GestureDetector,
   GestureHandlerRootView,
 } from 'react-native-gesture-handler';
 import Animated, {
+  cancelAnimation,
   Easing,
   FadeIn,
   FadeInDown,
@@ -17,21 +18,25 @@ import Animated, {
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
+  withRepeat,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePressScale } from '../../hooks/usePressScale';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { typography } from '../../theme/typography';
 import AppText from '../ui/AppText';
 
+// ── Motion tokens (design system level) ────────────────────────────────────
+const ENTER_DURATION = 280;
+const ENTER_EASING = Easing.out(Easing.cubic);
+const BUTTON_SPRING = { stiffness: 180, damping: 22, mass: 0.8 } as const;
 const ALLOWED_MINUTES = [15, 30, 45, 60] as const;
 const PLAY_BUTTON_SIZE = 88;
-const BUTTON_SPRING = { stiffness: 180, damping: 22, mass: 0.8 } as const;
 
-// ── Animated stepper number — slides up on increase, down on decrease ─────────
+// ── AnimatedStepperValue — slides vertically on value change ────────────────
 function AnimatedStepperValue({ value, unit }: { value: number; unit: string }) {
   const [displayed, setDisplayed] = useState(value);
   const prevRef = useRef(value);
@@ -51,7 +56,7 @@ function AnimatedStepperValue({ value, unit }: { value: number; unit: string }) 
         runOnJS(setDisplayed)(value);
         translateY.value = -exitY;
         opacity.value = 0;
-        translateY.value = withTiming(0, { duration: 100, easing: Easing.out(Easing.cubic) });
+        translateY.value = withTiming(0, { duration: 100, easing: ENTER_EASING });
         opacity.value = withTiming(1, { duration: 100 });
       }
     });
@@ -71,7 +76,51 @@ function AnimatedStepperValue({ value, unit }: { value: number; unit: string }) 
   );
 }
 
-// ── Props ─────────────────────────────────────────────────────────────────────
+// ── AnimatedTopicInput — bottom border brightens on focus ───────────────────
+type TopicInputProps = {
+  value: string;
+  onChangeText: (v: string) => void;
+  editable: boolean;
+};
+
+function AnimatedTopicInput({ value, onChangeText, editable }: TopicInputProps) {
+  const focusProgress = useSharedValue(0);
+
+  const handleFocus = () => {
+    focusProgress.value = withTiming(1, { duration: 220, easing: ENTER_EASING });
+  };
+  const handleBlur = () => {
+    focusProgress.value = withTiming(0, { duration: 220, easing: ENTER_EASING });
+  };
+
+  const wrapperStyle = useAnimatedStyle(() => ({
+    borderBottomColor: interpolateColor(
+      focusProgress.value,
+      [0, 1],
+      [colors.dark.line.input, colors.dark.line.strong],
+    ),
+  }));
+
+  return (
+    <Animated.View style={[styles.inputWrapper, wrapperStyle]}>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={editable ? 'What is your topic today?' : 'Session in progress.'}
+        placeholderTextColor={colors.dark.text.placeholder}
+        editable={editable}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        returnKeyType="done"
+        style={styles.topicInput}
+        accessibilityLabel="Session topic"
+        accessibilityHint="Enter what you will focus on during this session"
+      />
+    </Animated.View>
+  );
+}
+
+// ── Props ───────────────────────────────────────────────────────────────────
 type Props = {
   streakDays?: number;
   rankLabel?: string;
@@ -87,7 +136,7 @@ type Props = {
   onResumeSession?: () => void;
 };
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── SessionStartCard ─────────────────────────────────────────────────────────
 export default function SessionStartCard({
   streakDays = 0,
   rankLabel = 'Surface',
@@ -97,6 +146,7 @@ export default function SessionStartCard({
   onSubmit,
   onResumeSession,
 }: Props) {
+  const insets = useSafeAreaInsets();
   const [topic, setTopic] = useState('');
   const [minutesIndex, setMinutesIndex] = useState(0);
   const [plannedSessionCount, setPlannedSessionCount] = useState(1);
@@ -104,36 +154,49 @@ export default function SessionStartCard({
 
   const canPlay = hasActiveSession || (!isSubmitting && topic.trim().length > 0);
 
-  // ── Readiness animation (0 = locked, 1 = ready) ───────────────────────────
+  // ── Readiness animation (0 = locked, 1 = ready) ─────────────────────────
   const readyProgress = useSharedValue(canPlay ? 1 : 0);
   const readyScale = useSharedValue(canPlay ? 1 : 0.94);
 
   useEffect(() => {
     readyProgress.value = withTiming(canPlay ? 1 : 0, {
       duration: 280,
-      easing: Easing.out(Easing.cubic),
+      easing: ENTER_EASING,
     });
     readyScale.value = withSpring(canPlay ? 1.0 : 0.94, BUTTON_SPRING);
   }, [canPlay]);
 
-  // ── Play button press scale ───────────────────────────────────────────────
-  const pressScale = useSharedValue(1);
+  // ── Submitting pulse — breathes on the play icon while pending ──────────
+  const submittingPulse = useSharedValue(1);
+  useEffect(() => {
+    if (isSubmitting) {
+      submittingPulse.value = withRepeat(
+        withTiming(0.3, { duration: 560, easing: ENTER_EASING }),
+        -1,
+        true,
+      );
+    } else {
+      cancelAnimation(submittingPulse);
+      submittingPulse.value = withTiming(1, { duration: 200 });
+    }
+  }, [isSubmitting]);
 
-  // Combine readiness scale + press scale
+  // ── Play button press scale ─────────────────────────────────────────────
+  const pressScale = useSharedValue(1);
   const combinedScale = useDerivedValue(() => readyScale.value * pressScale.value);
 
-  // ── Pulse ring ────────────────────────────────────────────────────────────
+  // ── Pulse ring — expands outward on tap ─────────────────────────────────
   const pulseOpacity = useSharedValue(0);
   const pulseScale = useSharedValue(1);
 
   const triggerPulse = () => {
     pulseOpacity.value = 0.55;
     pulseScale.value = 1;
-    pulseOpacity.value = withTiming(0, { duration: 420, easing: Easing.out(Easing.cubic) });
-    pulseScale.value = withTiming(1.85, { duration: 420, easing: Easing.out(Easing.cubic) });
+    pulseOpacity.value = withTiming(0, { duration: 420, easing: ENTER_EASING });
+    pulseScale.value = withTiming(1.85, { duration: 420, easing: ENTER_EASING });
   };
 
-  // ── Play handlers ─────────────────────────────────────────────────────────
+  // ── Handlers ────────────────────────────────────────────────────────────
   const handleHaptic = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
   const handleNavigate = () => {
@@ -165,18 +228,19 @@ export default function SessionStartCard({
       runOnJS(handlePlay)();
     });
 
-  // ── Animated styles ───────────────────────────────────────────────────────
+  // ── Animated styles ─────────────────────────────────────────────────────
   const playButtonStyle = useAnimatedStyle(() => ({
     borderColor: interpolateColor(
       readyProgress.value,
       [0, 1],
-      [colors.dark.line.disabled, colors.dark.line.strong]
+      [colors.dark.line.disabled, colors.dark.line.strong],
     ),
     transform: [{ scale: combinedScale.value }],
   }));
 
+  // Combines readiness opacity + submitting breathe
   const playIconStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(readyProgress.value, [0, 1], [0.2, 1.0]),
+    opacity: interpolate(readyProgress.value, [0, 1], [0.2, 1.0]) * submittingPulse.value,
   }));
 
   const pulseRingStyle = useAnimatedStyle(() => ({
@@ -184,7 +248,7 @@ export default function SessionStartCard({
     transform: [{ scale: pulseScale.value }],
   }));
 
-  // ── Stepper press feedback ────────────────────────────────────────────────
+  // ── Stepper handlers ────────────────────────────────────────────────────
   const handleMinuteDec = () => {
     Haptics.selectionAsync();
     setMinutesIndex((i) => Math.max(0, i - 1));
@@ -207,113 +271,137 @@ export default function SessionStartCard({
   const sessionDec = usePressScale(handleSessionDec);
   const sessionInc = usePressScale(handleSessionInc);
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  const hintText = hasActiveSession ? 'Resume session' : 'Ready to begin?';
+
+  // ── Render ───────────────────────────────────────────────────────────────
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-
-        {/* Stats bar */}
-        <Animated.View entering={FadeIn.duration(280)} style={styles.statsBar}>
-          <View style={styles.statItem}>
-            <AppText style={styles.statLabel}>Today</AppText>
-            <AppText style={styles.statValue}>{todayFocusMinutes}m</AppText>
-          </View>
-          <View style={[styles.statItem, { alignItems: 'center' }]}>
-            <AppText style={styles.statLabel}>Rank</AppText>
-            <AppText style={styles.statValue}>{rankLabel}</AppText>
-          </View>
-          <View style={[styles.statItem, { alignItems: 'flex-end' }]}>
-            <AppText style={styles.statLabel}>Streak</AppText>
-            <AppText style={styles.statValue}>{streakDays > 0 ? `${streakDays}d` : '—'}</AppText>
-          </View>
-        </Animated.View>
-
-        {/* Form — golden ratio offset via paddingBottom */}
-        <Animated.View
-          entering={FadeInDown.delay(80).duration(300).easing(Easing.out(Easing.cubic))}
-          style={styles.formArea}
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <TextInput
-            value={topic}
-            onChangeText={setTopic}
-            placeholder={hasActiveSession ? 'Session in progress.' : 'What is your topic today?'}
-            placeholderTextColor={colors.dark.text.placeholder}
-            editable={!hasActiveSession}
-            style={styles.topicInput}
-          />
-
-          <View style={styles.steppers}>
-            {/* Time */}
-            <View style={styles.stepperRow}>
-              <AppText style={styles.stepperLabel}>Time</AppText>
-              <View style={styles.stepperControls}>
-                <GestureDetector gesture={minuteDec.gesture}>
-                  <Animated.View style={[styles.stepperBtn, minuteDec.animatedStyle]}>
-                    <AppText style={styles.stepperBtnText}>−</AppText>
-                  </Animated.View>
-                </GestureDetector>
-
-                <AnimatedStepperValue value={plannedMinutes} unit="mins" />
-
-                <GestureDetector gesture={minuteInc.gesture}>
-                  <Animated.View style={[styles.stepperBtn, minuteInc.animatedStyle]}>
-                    <AppText style={styles.stepperBtnText}>+</AppText>
-                  </Animated.View>
-                </GestureDetector>
-              </View>
-            </View>
-
-            <View style={styles.stepperDivider} />
-
-            {/* Sessions */}
-            <View style={styles.stepperRow}>
-              <AppText style={styles.stepperLabel}>Sessions</AppText>
-              <View style={styles.stepperControls}>
-                <GestureDetector gesture={sessionDec.gesture}>
-                  <Animated.View style={[styles.stepperBtn, sessionDec.animatedStyle]}>
-                    <AppText style={styles.stepperBtnText}>−</AppText>
-                  </Animated.View>
-                </GestureDetector>
-
-                <AnimatedStepperValue
-                  value={plannedSessionCount}
-                  unit={plannedSessionCount === 1 ? 'Session' : 'Sessions'}
-                />
-
-                <GestureDetector gesture={sessionInc.gesture}>
-                  <Animated.View style={[styles.stepperBtn, sessionInc.animatedStyle]}>
-                    <AppText style={styles.stepperBtnText}>+</AppText>
-                  </Animated.View>
-                </GestureDetector>
-              </View>
-            </View>
-          </View>
-        </Animated.View>
-
-        {/* Play button — anchored at bottom */}
-        <Animated.View
-          entering={FadeIn.delay(200).duration(280)}
-          style={styles.playArea}
-        >
-          {/* Pulse ring expands behind the button on press */}
+          {/* Stats bar — block 1 */}
           <Animated.View
-            style={[styles.pulseRing, pulseRingStyle]}
-            pointerEvents="none"
-          />
+            entering={FadeInDown.duration(ENTER_DURATION).easing(ENTER_EASING)}
+            style={styles.statsBar}
+          >
+            <View style={styles.statItem}>
+              <AppText style={styles.statLabel}>Today</AppText>
+              <AppText style={styles.statValue}>{todayFocusMinutes}m</AppText>
+            </View>
+            <View style={[styles.statItem, { alignItems: 'center' }]}>
+              <AppText style={styles.statLabel}>Rank</AppText>
+              <AppText style={styles.statValue}>{rankLabel}</AppText>
+            </View>
+            <View style={[styles.statItem, { alignItems: 'flex-end' }]}>
+              <AppText style={styles.statLabel}>Streak</AppText>
+              <AppText style={styles.statValue}>{streakDays > 0 ? `${streakDays}d` : '—'}</AppText>
+            </View>
+          </Animated.View>
 
-          <GestureDetector gesture={playGesture}>
-            <Animated.View style={[styles.playButton, playButtonStyle]}>
-              <Animated.View style={playIconStyle}>
-                <Ionicons name="play" size={26} color={colors.dark.text.primary} />
+          {/* Form — block 2 */}
+          <Animated.View
+            entering={FadeInDown.delay(100).duration(ENTER_DURATION).easing(ENTER_EASING)}
+            style={styles.formArea}
+          >
+            <AnimatedTopicInput
+              value={topic}
+              onChangeText={setTopic}
+              editable={!hasActiveSession}
+            />
+
+            <View style={styles.steppers}>
+              {/* Time stepper */}
+              <View style={styles.stepperRow}>
+                <AppText style={styles.stepperLabel}>Time</AppText>
+                <View style={styles.stepperControls}>
+                  <GestureDetector gesture={minuteDec.gesture}>
+                    <Animated.View
+                      style={[styles.stepperBtn, minuteDec.animatedStyle]}
+                      accessibilityRole="button"
+                      accessibilityLabel="Decrease time"
+                    >
+                      <AppText style={styles.stepperBtnText}>−</AppText>
+                    </Animated.View>
+                  </GestureDetector>
+
+                  <AnimatedStepperValue value={plannedMinutes} unit="mins" />
+
+                  <GestureDetector gesture={minuteInc.gesture}>
+                    <Animated.View
+                      style={[styles.stepperBtn, minuteInc.animatedStyle]}
+                      accessibilityRole="button"
+                      accessibilityLabel="Increase time"
+                    >
+                      <AppText style={styles.stepperBtnText}>+</AppText>
+                    </Animated.View>
+                  </GestureDetector>
+                </View>
+              </View>
+
+              <View style={styles.stepperDivider} />
+
+              {/* Sessions stepper */}
+              <View style={styles.stepperRow}>
+                <AppText style={styles.stepperLabel}>Sessions</AppText>
+                <View style={styles.stepperControls}>
+                  <GestureDetector gesture={sessionDec.gesture}>
+                    <Animated.View
+                      style={[styles.stepperBtn, sessionDec.animatedStyle]}
+                      accessibilityRole="button"
+                      accessibilityLabel="Decrease session count"
+                    >
+                      <AppText style={styles.stepperBtnText}>−</AppText>
+                    </Animated.View>
+                  </GestureDetector>
+
+                  <AnimatedStepperValue
+                    value={plannedSessionCount}
+                    unit={plannedSessionCount === 1 ? 'Session' : 'Sessions'}
+                  />
+
+                  <GestureDetector gesture={sessionInc.gesture}>
+                    <Animated.View
+                      style={[styles.stepperBtn, sessionInc.animatedStyle]}
+                      accessibilityRole="button"
+                      accessibilityLabel="Increase session count"
+                    >
+                      <AppText style={styles.stepperBtnText}>+</AppText>
+                    </Animated.View>
+                  </GestureDetector>
+                </View>
+              </View>
+            </View>
+          </Animated.View>
+
+          {/* Play button — block 3 */}
+          <Animated.View
+            entering={FadeInDown.delay(200).duration(ENTER_DURATION).easing(ENTER_EASING)}
+            style={[styles.playArea, { paddingBottom: insets.bottom + spacing['3xl'] }]}
+          >
+            {/* Pulse ring expands behind the button on tap */}
+            <Animated.View style={[styles.pulseRing, pulseRingStyle]} pointerEvents="none" />
+
+            <GestureDetector gesture={playGesture}>
+              <Animated.View
+                style={[styles.playButton, playButtonStyle]}
+                accessibilityRole="button"
+                accessibilityLabel={hintText}
+                accessibilityState={{ disabled: !canPlay, busy: isSubmitting }}
+              >
+                <Animated.View style={playIconStyle}>
+                  <Ionicons name="play" size={26} color={colors.dark.text.primary} />
+                </Animated.View>
               </Animated.View>
+            </GestureDetector>
+
+            {/* Hint text fades in fresh when state changes */}
+            <Animated.View key={hintText} entering={FadeIn.duration(200)}>
+              <AppText style={styles.playHint}>{hintText}</AppText>
             </Animated.View>
-          </GestureDetector>
-
-          <AppText style={styles.playHint}>
-            {hasActiveSession ? 'Resume session' : 'Ready to begin?'}
-          </AppText>
-        </Animated.View>
-
+          </Animated.View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </GestureHandlerRootView>
   );
@@ -325,7 +413,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.dark.bg,
   },
 
-  // ── Stats ──────────────────────────────────────────────────────────────────
+  // ── Stats ────────────────────────────────────────────────────────────────
   statsBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -348,28 +436,30 @@ const styles = StyleSheet.create({
     color: colors.dark.text.primary,
   },
 
-  // ── Form ───────────────────────────────────────────────────────────────────
+  // ── Form ─────────────────────────────────────────────────────────────────
   formArea: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing['3xl'],
-    // Golden ratio offset: pushes form to ~38% from top on iPhone 14
     paddingBottom: spacing['6xl'],
     gap: spacing['3xl'],
   },
-  topicInput: {
+  // Border lives on the wrapper so useAnimatedStyle can drive borderBottomColor
+  inputWrapper: {
     width: '100%',
     borderBottomWidth: 1,
-    borderBottomColor: colors.dark.line.input,
     paddingBottom: spacing.md,
+  },
+  topicInput: {
+    width: '100%',
     color: colors.dark.text.primary,
     fontSize: typography.title.fontSize,
     textAlign: 'center',
     fontWeight: '300',
   },
 
-  // ── Steppers ───────────────────────────────────────────────────────────────
+  // ── Steppers ─────────────────────────────────────────────────────────────
   steppers: {
     width: '100%',
   },
@@ -389,7 +479,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.lg,
   },
-  // No border, no box — just generous hit target
+  // Generous hit area, no visual box
   stepperBtn: {
     width: spacing['4xl'],
     height: spacing['4xl'],
@@ -418,13 +508,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.dark.line.divider,
   },
 
-  // ── Play button ────────────────────────────────────────────────────────────
+  // ── Play button ───────────────────────────────────────────────────────────
   playArea: {
     alignItems: 'center',
-    paddingBottom: spacing['3xl'],
     gap: spacing.md,
   },
-  // Pulse ring — same size as button, expands outward on tap
   pulseRing: {
     position: 'absolute',
     width: PLAY_BUTTON_SIZE,
