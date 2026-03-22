@@ -13,9 +13,5 @@ export const queryKeys = {
   quizDetail: (quizId: string) => ['quiz', 'detail', quizId] as const,
   quizAttempt: (quizId: string, attemptId: string) => ['quiz', 'attempt', quizId, attemptId] as const,
   highlightSessionQuizResult: (sessionId: string) => ['highlight', 'quiz-result', sessionId] as const,
-  highlight: {
-    list: ['highlight', 'list'] as const,
-  },
-  feedPosts: ['feed', 'posts'] as const,
-  feedComments: (postId: string) => ['feed', 'comments', postId] as const,
+  feedWave: ['feed', 'wave'] as const,
 } as const;

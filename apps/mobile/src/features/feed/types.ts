@@ -1,21 +1,11 @@
-export type FeedAuthor = {
-  id: string;
-  handle: string;
-  displayName: string;
+export type WaveItem = {
+  highlightId: string;
+  title: string;
+  authorHandle: string;
+  topic: string | null;
+  imageUrl: string | null;
 };
 
-export type FeedPost = {
-  id: string;
-  author: FeedAuthor;
-  content: string;
-  createdAt: string;
-  expiresAt: string;
-  commentCount: number;
-};
-
-export type FeedComment = {
-  id: string;
-  author: FeedAuthor;
-  content: string;
-  createdAt: string;
+export type WaveFeedResponse = {
+  waveItems: WaveItem[];
 };

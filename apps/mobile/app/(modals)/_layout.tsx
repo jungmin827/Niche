@@ -6,9 +6,7 @@ export default function ModalsLayout() {
       <Stack.Screen name="session-note" />
       <Stack.Screen name="blog-compose" />
       <Stack.Screen name="share-preview" />
-      <Stack.Screen name="feed-compose" />
-      <Stack.Screen name="feed-comments" />
-      <Stack.Screen name="highlight-create" />
+<Stack.Screen name="highlight-create" />
       <Stack.Screen name="highlight-session-picker" />
       <Stack.Screen name="highlight-viewer" />
       <Stack.Screen name="profile-edit" />

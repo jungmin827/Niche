@@ -1,24 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
-import { getFeedComments, getFeedPosts } from '../../api/feed';
+import { getWaveFeed } from '../../api/feed';
 import { queryKeys } from '../../constants/queryKeys';
 
-export function useFeedPostsQuery() {
+export function useWaveFeedQuery() {
   return useQuery({
-    queryKey: queryKeys.feedPosts,
+    queryKey: queryKeys.feedWave,
     queryFn: async () => {
-      const response = await getFeedPosts();
-      return response.items;
+      const response = await getWaveFeed();
+      return response.waveItems;
     },
-  });
-}
-
-export function useFeedCommentsQuery(postId: string) {
-  return useQuery({
-    queryKey: queryKeys.feedComments(postId),
-    queryFn: async () => {
-      const response = await getFeedComments(postId);
-      return response.items;
-    },
-    enabled: Boolean(postId),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    retry: 1,
   });
 }
