@@ -4,7 +4,7 @@
 NichE is a mobile app for recording, proving, and sharing deep minor interests — books, taste, observation, reflection. The tone is editorial, minimal, quiet, precise.
 
 ## Architecture
-- **Frontend**: Expo + React Native + TypeScript, Expo Router, TanStack Query, Zustand, NativeWind
+- **Frontend**: Expo SDK 54 + React Native + TypeScript, Expo Router, TanStack Query, Zustand, NativeWind
 - **Backend**: FastAPI modular monolith, async-first, routers/services/repositories separation
 - **Database/Auth/Storage**: Supabase (Postgres + Auth + Storage)
 - Backend is the domain source of truth. Frontend uses FastAPI for domain data, Supabase only for auth/storage.

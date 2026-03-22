@@ -80,8 +80,9 @@ NichE 프론트엔드는 단순 API 소비 계층이 아니다.
 ## 3. 권장 기술 스택 (확정안)
 
 ## 3.1 앱 프레임워크
-- **Expo + React Native + TypeScript**
+- **Expo SDK 54 + React Native + TypeScript**
 - Expo Router 기반 파일 라우팅 사용
+- Expo Go 앱(SDK 54)과 버전 싱크 유지 — `expo ~54.x`, `react-native 0.81.x`, `react 19.1.x`
 
 선정 이유:
 - Expo는 앱 개발/실기기 테스트/배포 파이프라인을 빠르게 시작하기 좋다.
@@ -121,7 +122,7 @@ NichE 프론트엔드는 단순 API 소비 계층이 아니다.
 - 에디토리얼/모노크롬 톤을 utility class로 일관되게 맞추기 쉽다.
 - 단, 앱 전체를 utility class만으로 해결하려 하지 말고, 공통 컴포넌트에 스타일을 캡슐화한다.
 
-## 3.5 보조 라이브러리
+## 3.5 보조 라이브러리 (Expo SDK 54 호환)
 - `react-native-reanimated`: 화면 전환/하단 시트/미세 모션
 - `react-native-gesture-handler`: 제스처
 - `expo-haptics`: 세션 시작/종료, 저장, 랭크업 등 촉각 피드백
