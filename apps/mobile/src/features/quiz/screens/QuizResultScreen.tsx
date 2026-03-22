@@ -6,7 +6,11 @@ import AppText from '../../../components/ui/AppText';
 import { useQuizAttemptQuery } from '../hooks';
 
 export default function QuizResultScreen() {
-  const { quizId, attemptId } = useLocalSearchParams<{ quizId: string; attemptId: string }>();
+  const { quizId, attemptId, sessionId } = useLocalSearchParams<{
+    quizId: string;
+    attemptId: string;
+    sessionId?: string;
+  }>();
   const attemptQuery = useQuizAttemptQuery(quizId ?? '', attemptId ?? '');
 
   const attempt = attemptQuery.data;
@@ -25,9 +29,27 @@ export default function QuizResultScreen() {
           borderBottomColor: '#D9D9D4',
         }}
       >
-        <Pressable onPress={() => router.replace('/(tabs)/session')} hitSlop={8}>
-          <AppText variant="bodySmall">Done</AppText>
-        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 20, alignItems: 'center' }}>
+          {sessionId ? (
+            <Pressable
+              onPress={() =>
+                router.replace({
+                  pathname: '/(modals)/share-preview',
+                  params: {
+                    sessionId,
+                    quizScore: attempt?.totalScore?.toString() ?? '',
+                  },
+                })
+              }
+              hitSlop={8}
+            >
+              <AppText variant="bodySmall">Export</AppText>
+            </Pressable>
+          ) : null}
+          <Pressable onPress={() => router.replace('/(tabs)/session')} hitSlop={8}>
+            <AppText variant="bodySmall">Done</AppText>
+          </Pressable>
+        </View>
       </View>
 
       {attemptQuery.isLoading ? (

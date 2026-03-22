@@ -14,7 +14,7 @@ import AppText from '../../../components/ui/AppText';
 import { useQuizQuery, useSubmitQuizAttemptMutation } from '../hooks';
 
 export default function QuizAnswerScreen() {
-  const { quizId } = useLocalSearchParams<{ quizId: string }>();
+  const { quizId, sessionId } = useLocalSearchParams<{ quizId: string; sessionId?: string }>();
   const quizQuery = useQuizQuery(quizId ?? '');
   const submitMutation = useSubmitQuizAttemptMutation();
 
@@ -41,7 +41,7 @@ export default function QuizAnswerScreen() {
 
       router.replace({
         pathname: '/(modals)/quiz-result',
-        params: { quizId: quiz.id, attemptId: result.attempt.id },
+        params: { quizId: quiz.id, attemptId: result.attempt.id, sessionId: sessionId ?? '' },
       });
     } catch {
       Alert.alert('Submission failed', 'Could not submit your answers. Please try again.');

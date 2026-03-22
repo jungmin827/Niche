@@ -1,176 +1,325 @@
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import SharePreview from '../../../components/share/SharePreview';
+import { Alert, Image, StyleSheet, View } from 'react-native';
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler';
+import Animated, {
+  Easing,
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import NikeTemplate from '../../../components/share/NikeTemplate';
 import AppText from '../../../components/ui/AppText';
-import { toApiError } from '../../../lib/error';
-import { useSessionDetailQuery } from '../../session/hooks';
-import { buildHighlightCaption, buildHighlightTitle, buildShareModel } from '../helpers';
-import { useCreateHighlightMutation } from '../hooks';
-import { captureTemplate, shareCapturedTemplate } from '../capture';
-import { HighlightTemplateCode } from '../types';
 import { routes } from '../../../constants/routes';
+import { usePressScale } from '../../../hooks/usePressScale';
+import { toApiError } from '../../../lib/error';
+import { colors } from '../../../theme/colors';
+import { spacing } from '../../../theme/spacing';
+import { useSessionDetailQuery, useSessionHomeQuery } from '../../session/hooks';
+import { captureTemplate, shareCapturedTemplate } from '../capture';
+import {
+  buildHighlightCaption,
+  buildHighlightTitle,
+  buildShareModel,
+} from '../helpers';
+import { useCreateHighlightMutation } from '../hooks';
 
-const TEMPLATE_OPTIONS: { code: HighlightTemplateCode; label: string }[] = [
-  { code: 'mono_story_v1', label: 'Style A' },
-  { code: 'mono_story_v2', label: 'Style B' },
-];
+const TEMPLATE_SPRING = { stiffness: 180, damping: 22, mass: 0.8 } as const;
 
 export default function SharePreviewScreen() {
-  const { sessionId } = useLocalSearchParams<{ sessionId?: string }>();
+  const { sessionId, quizScore } = useLocalSearchParams<{
+    sessionId?: string;
+    quizScore?: string;
+  }>();
+
+  const insets = useSafeAreaInsets();
   const detailQuery = useSessionDetailQuery(sessionId ?? '');
+  const homeQuery = useSessionHomeQuery();
   const createHighlightMutation = useCreateHighlightMutation();
   const previewRef = useRef<View>(null);
-  const [templateCode, setTemplateCode] = useState<HighlightTemplateCode>('mono_story_v1');
+  const [backgroundUri, setBackgroundUri] = useState<string | null>(null);
 
   const session = detailQuery.data?.session ?? null;
   const note = detailQuery.data?.note ?? null;
 
+  const parsedScore = quizScore != null ? parseInt(quizScore, 10) : null;
+  const scoreValue = parsedScore != null && !isNaN(parsedScore) ? parsedScore : null;
+
+  const streakDays = homeQuery.data?.currentStreakDays ?? 0;
+
   const model = useMemo(() => {
-    if (!session || !note) return null;
-    return buildShareModel({ session, note, templateCode });
-  }, [session, note, templateCode]);
+    if (!session) return null;
+    return buildShareModel({ session, note, templateCode: 'nike_v1', quizScore: scoreValue, streakDays });
+  }, [session, note, scoreValue, streakDays]);
+
+  // ── Template drag + pinch ───────────────────────────────────────────────────
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const templateScale = useSharedValue(1);
+  const savedTranslateX = useSharedValue(0);
+  const savedTranslateY = useSharedValue(0);
+  const savedTemplateScale = useSharedValue(1);
+
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
+      'worklet';
+      savedTranslateX.value = translateX.value;
+      savedTranslateY.value = translateY.value;
+    })
+    .onUpdate((e) => {
+      'worklet';
+      translateX.value = savedTranslateX.value + e.translationX;
+      translateY.value = savedTranslateY.value + e.translationY;
+    });
+
+  const pinchGesture = Gesture.Pinch()
+    .onStart(() => {
+      'worklet';
+      savedTemplateScale.value = templateScale.value;
+    })
+    .onUpdate((e) => {
+      'worklet';
+      templateScale.value = Math.max(0.4, Math.min(3.0, savedTemplateScale.value * e.scale));
+    })
+    .onEnd(() => {
+      'worklet';
+      if (templateScale.value < 0.5) {
+        templateScale.value = withSpring(0.5, TEMPLATE_SPRING);
+      }
+    });
+
+  const composed = Gesture.Simultaneous(panGesture, pinchGesture);
+
+  const templateAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: templateScale.value },
+    ],
+  }));
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
+  const handlePickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 1,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setBackgroundUri(result.assets[0].uri);
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      await Haptics.selectionAsync();
+      await shareCapturedTemplate(previewRef);
+    } catch (error) {
+      Alert.alert('Could not share.', toApiError(error).message);
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!session || !model) return;
+    try {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const renderedImagePath = await captureTemplate(previewRef);
+      const response = await createHighlightMutation.mutateAsync({
+        sourceType: 'session',
+        sessionId: session.id,
+        bundleId: null,
+        title: buildHighlightTitle(session),
+        caption: buildHighlightCaption(note),
+        templateCode: 'nike_v1',
+        renderedImagePath,
+        sourcePhotoPath: backgroundUri,
+        visibility: 'public',
+      });
+      router.replace(routes.archiveHighlightDetail(response.highlight.id));
+    } catch (error) {
+      Alert.alert('Could not save.', toApiError(error).message);
+    }
+  };
+
+  const archiveDisabled = createHighlightMutation.isPending || !model;
+
+  // ── Button press animations ─────────────────────────────────────────────────
+  const back = usePressScale(() => router.back());
+  const camera = usePressScale(handlePickImage);
+  const share = usePressScale(handleShare);
+  const archive = usePressScale(handleArchive, archiveDisabled);
 
   if (!sessionId) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top', 'bottom']}>
-        <View style={{ flex: 1, padding: 32, alignItems: 'center', justifyContent: 'center' }}>
-          <AppText variant="body">세션을 찾을 수 없습니다.</AppText>
-        </View>
-      </SafeAreaView>
+      <View style={styles.centeredFill}>
+        <AppText variant="body">Session not found.</AppText>
+      </View>
     );
   }
 
-  if (detailQuery.isLoading) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top', 'bottom']}>
-        <View style={{ flex: 1, padding: 32, alignItems: 'center', justifyContent: 'center' }}>
-          <AppText variant="body">불러오는 중...</AppText>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const iconColor = backgroundUri ? colors.text.inverse : colors.text.primary;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top', 'bottom']}>
-      {/* Header */}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingHorizontal: 24,
-          paddingVertical: 16,
-          borderBottomWidth: 1,
-          borderBottomColor: '#f0f0f0',
-        }}
-      >
-        <Pressable onPress={() => router.back()} style={{ marginRight: 16 }}>
-          <AppText variant="body" style={{ fontSize: 20 }}>←</AppText>
-        </Pressable>
-        <AppText variant="bodySmall" style={{ color: '#000' }}>
-          Export
-        </AppText>
-      </View>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: colors.bg.primary }}>
 
-      {/* Center — 9:16 template preview */}
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 16 }}>
-        <View
-          ref={previewRef}
-          style={{
-            width: '72%',
-            aspectRatio: 9 / 16,
-            overflow: 'hidden',
-          }}
-        >
-          {model ? <SharePreview model={model} /> : (
-            <View style={{ flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' }}>
-              <AppText variant="bodySmall" color="inverse" style={{ color: '#888' }}>
-                기록을 먼저 저장하세요.
-              </AppText>
-            </View>
-          )}
+        {/* ── Capturable canvas ── */}
+        <View ref={previewRef} collapsable={false} style={StyleSheet.absoluteFill}>
+          {backgroundUri ? (
+            <Image
+              source={{ uri: backgroundUri }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+            />
+          ) : null}
+
+          {/* NichE logo — fixed top-right, not draggable */}
+          <AppText style={[styles.brandLogo, { color: iconColor }]}>
+            NichE
+          </AppText>
+
+          {model ? (
+            <GestureDetector gesture={composed}>
+              <Animated.View
+                entering={FadeInDown.duration(320).easing(Easing.out(Easing.cubic))}
+                style={[styles.templateAnchor, templateAnimatedStyle]}
+              >
+                <NikeTemplate model={model} hasBackground={!!backgroundUri} />
+              </Animated.View>
+            </GestureDetector>
+          ) : null}
         </View>
-      </View>
 
-      {/* Bottom controls */}
-      <View style={{ paddingHorizontal: 24, paddingBottom: 24, gap: 16 }}>
-        {/* Style selector */}
-        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 32 }}>
-          {TEMPLATE_OPTIONS.map((opt) => {
-            const selected = opt.code === templateCode;
-            return (
-              <Pressable key={opt.code} onPress={() => setTemplateCode(opt.code)}>
-                <AppText
-                  variant="bodySmall"
-                  style={{
-                    color: selected ? '#000' : '#aaa',
-                    fontWeight: selected ? '600' : '400',
-                  }}
-                >
-                  {opt.label}
+        {/* ── Controls overlay (not captured) ── */}
+        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+
+          {/* Back */}
+          <GestureDetector gesture={back.gesture}>
+            <Animated.View
+              style={[styles.backButton, { top: insets.top + spacing.md }, back.animatedStyle]}
+            >
+              <Ionicons name="arrow-back" size={spacing.xl} color={iconColor} />
+            </Animated.View>
+          </GestureDetector>
+
+          {/* Camera icon — bottom-left, sits above the action row */}
+          <GestureDetector gesture={camera.gesture}>
+            <Animated.View
+              style={[
+                styles.cameraButton,
+                { bottom: spacing['6xl'] + insets.bottom + spacing.lg },
+                camera.animatedStyle,
+              ]}
+            >
+              <Ionicons name="camera-outline" size={spacing.xl} color={colors.text.primary} />
+            </Animated.View>
+          </GestureDetector>
+
+          {/* Share | Archive */}
+          <View style={[styles.actionRow, { height: spacing['6xl'] + insets.bottom }]}>
+            <GestureDetector gesture={share.gesture}>
+              <Animated.View
+                style={[styles.actionButton, { paddingBottom: insets.bottom }, share.animatedStyle]}
+              >
+                <AppText variant="bodySmall" style={styles.actionLabel}>
+                  Share
                 </AppText>
-              </Pressable>
-            );
-          })}
+              </Animated.View>
+            </GestureDetector>
+
+            <View style={styles.actionDivider} />
+
+            <GestureDetector gesture={archive.gesture}>
+              <Animated.View
+                style={[
+                  styles.actionButton,
+                  { paddingBottom: insets.bottom },
+                  archive.animatedStyle,
+                  archiveDisabled && styles.actionDisabled,
+                ]}
+              >
+                <AppText variant="bodySmall" style={styles.actionLabel}>
+                  {createHighlightMutation.isPending ? 'Saving...' : 'Archive'}
+                </AppText>
+              </Animated.View>
+            </GestureDetector>
+          </View>
+
         </View>
-
-        {/* Share to Story */}
-        <Pressable
-          onPress={async () => {
-            try {
-              await shareCapturedTemplate(previewRef);
-            } catch (error) {
-              Alert.alert('공유할 수 없어요.', toApiError(error).message);
-            }
-          }}
-          style={({ pressed }) => ({
-            backgroundColor: pressed ? '#333' : '#000',
-            paddingVertical: 16,
-            alignItems: 'center',
-          })}
-        >
-          <AppText variant="bodySmall" color="inverse" style={{ color: '#fff' }}>
-            Share to Story
-          </AppText>
-        </Pressable>
-
-        {/* Save Image (highlight 저장) */}
-        <Pressable
-          onPress={async () => {
-            if (!session || !model) return;
-            try {
-              const renderedImagePath = await captureTemplate(previewRef);
-              const response = await createHighlightMutation.mutateAsync({
-                sourceType: 'session',
-                sessionId: session.id,
-                bundleId: null,
-                title: buildHighlightTitle(session),
-                caption: buildHighlightCaption(note),
-                templateCode,
-                renderedImagePath,
-                sourcePhotoPath: null,
-                visibility: 'public',
-              });
-              router.replace(routes.archiveHighlightDetail(response.highlight.id));
-            } catch (error) {
-              Alert.alert('저장 중 문제가 생겼어요.', toApiError(error).message);
-            }
-          }}
-          disabled={createHighlightMutation.isPending || !model}
-          style={({ pressed }) => ({
-            borderWidth: 1,
-            borderColor: '#000',
-            paddingVertical: 16,
-            alignItems: 'center',
-            opacity: pressed || createHighlightMutation.isPending ? 0.5 : 1,
-          })}
-        >
-          <AppText variant="bodySmall" style={{ color: '#000' }}>
-            {createHighlightMutation.isPending ? '저장 중...' : 'Save Image'}
-          </AppText>
-        </Pressable>
       </View>
-    </SafeAreaView>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  centeredFill: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bg.primary,
+  },
+  brandLogo: {
+    position: 'absolute',
+    top: spacing.xl,
+    right: spacing.xl,
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 1.5,
+  },
+  // Template starts bottom-right; pan/pinch translate from this anchor
+  templateAnchor: {
+    position: 'absolute',
+    bottom: spacing['6xl'] + spacing.xl,
+    right: spacing['2xl'],
+  },
+  backButton: {
+    position: 'absolute',
+    left: spacing.xl,
+    width: spacing['4xl'],
+    height: spacing['4xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cameraButton: {
+    position: 'absolute',
+    left: spacing.xl,
+    width: spacing['4xl'],
+    height: spacing['4xl'],
+    backgroundColor: colors.overlayWhite,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionRow: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    backgroundColor: colors.overlayWhite,
+  },
+  actionButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionDivider: {
+    width: 1,
+    backgroundColor: colors.line.secondary,
+    marginVertical: spacing.lg,
+  },
+  actionLabel: {
+    color: colors.text.primary,
+    fontWeight: '500',
+  },
+  actionDisabled: {
+    opacity: 0.4,
+  },
+});
