@@ -9,8 +9,13 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from src.config import get_settings
-from src.models import highlight_tables, session_tables
-from src.models import profile_table, blog_post_table, quiz_tables  # noqa: F401 — register ORM tables
+from src.models import (  # noqa: F401 — register ORM tables
+    blog_post_table,
+    highlight_tables,
+    profile_table,
+    quiz_tables,
+    session_tables,
+)
 from src.models.base import Base
 
 config = context.config
@@ -42,7 +47,9 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
+    context.configure(
+        connection=connection, target_metadata=target_metadata, compare_type=True
+    )
 
     with context.begin_transaction():
         context.run_migrations()
