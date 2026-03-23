@@ -23,7 +23,9 @@ _vis = postgresql.ENUM("public", "private", name="visibility_enum", create_type=
 def upgrade() -> None:
     op.create_table(
         "blog_posts",
-        sa.Column("id", postgresql.UUID(as_uuid=False), primary_key=True, nullable=False),
+        sa.Column(
+            "id", postgresql.UUID(as_uuid=False), primary_key=True, nullable=False
+        ),
         sa.Column(
             "profile_id",
             postgresql.UUID(as_uuid=False),
@@ -36,13 +38,36 @@ def upgrade() -> None:
         sa.Column("body_md", sa.Text(), nullable=False),
         sa.Column("cover_image_path", sa.Text(), nullable=True),
         sa.Column("visibility", _vis, nullable=False, server_default="public"),
-        sa.Column("published_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "published_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
     )
-    op.create_index("ix_blog_posts_profile_id_published_at", "blog_posts", ["profile_id", "published_at"])
-    op.create_index("ix_blog_posts_visibility_published_at", "blog_posts", ["visibility", "published_at"])
+    op.create_index(
+        "ix_blog_posts_profile_id_published_at",
+        "blog_posts",
+        ["profile_id", "published_at"],
+    )
+    op.create_index(
+        "ix_blog_posts_visibility_published_at",
+        "blog_posts",
+        ["visibility", "published_at"],
+    )
     op.create_index(
         "uq_blog_posts_profile_id_slug",
         "blog_posts",
