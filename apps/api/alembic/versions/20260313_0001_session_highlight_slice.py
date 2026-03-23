@@ -50,7 +50,9 @@ def upgrade() -> None:
 
     op.create_table(
         "session_bundles",
-        sa.Column("id", postgresql.UUID(as_uuid=False), primary_key=True, nullable=False),
+        sa.Column(
+            "id", postgresql.UUID(as_uuid=False), primary_key=True, nullable=False
+        ),
         sa.Column("profile_id", postgresql.UUID(as_uuid=False), nullable=False),
         sa.Column("title", sa.Text(), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
@@ -58,8 +60,18 @@ def upgrade() -> None:
         sa.Column("ended_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("total_minutes", sa.Integer(), nullable=False),
         sa.Column("visibility", _vis, nullable=False, server_default="public"),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
     )
     op.create_index(
@@ -75,7 +87,9 @@ def upgrade() -> None:
 
     op.create_table(
         "sessions",
-        sa.Column("id", postgresql.UUID(as_uuid=False), primary_key=True, nullable=False),
+        sa.Column(
+            "id", postgresql.UUID(as_uuid=False), primary_key=True, nullable=False
+        ),
         sa.Column("profile_id", postgresql.UUID(as_uuid=False), nullable=False),
         sa.Column("topic", sa.Text(), nullable=True),
         sa.Column("subject", sa.Text(), nullable=True),
@@ -85,20 +99,43 @@ def upgrade() -> None:
         sa.Column("ended_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("status", _status, nullable=False),
         sa.Column("visibility", _vis, nullable=False, server_default="public"),
-        sa.Column("is_highlight_eligible", sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.Column(
+            "is_highlight_eligible",
+            sa.Boolean(),
+            nullable=False,
+            server_default=sa.false(),
+        ),
         sa.Column("source", sa.Text(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
-        sa.CheckConstraint("planned_minutes > 0", name="ck_sessions_planned_minutes_positive"),
+        sa.CheckConstraint(
+            "planned_minutes > 0", name="ck_sessions_planned_minutes_positive"
+        ),
         sa.CheckConstraint(
             "actual_minutes IS NULL OR actual_minutes > 0",
             name="ck_sessions_actual_minutes_positive",
         ),
     )
-    op.create_index("ix_sessions_profile_id_started_at", "sessions", ["profile_id", "started_at"])
-    op.create_index("ix_sessions_status_created_at", "sessions", ["status", "created_at"])
-    op.create_index("ix_sessions_visibility_created_at", "sessions", ["visibility", "created_at"])
+    op.create_index(
+        "ix_sessions_profile_id_started_at", "sessions", ["profile_id", "started_at"]
+    )
+    op.create_index(
+        "ix_sessions_status_created_at", "sessions", ["status", "created_at"]
+    )
+    op.create_index(
+        "ix_sessions_visibility_created_at", "sessions", ["visibility", "created_at"]
+    )
     op.create_index(
         "uq_sessions_one_active_per_profile",
         "sessions",
@@ -109,7 +146,9 @@ def upgrade() -> None:
 
     op.create_table(
         "session_notes",
-        sa.Column("id", postgresql.UUID(as_uuid=False), primary_key=True, nullable=False),
+        sa.Column(
+            "id", postgresql.UUID(as_uuid=False), primary_key=True, nullable=False
+        ),
         sa.Column(
             "session_id",
             postgresql.UUID(as_uuid=False),
@@ -120,13 +159,29 @@ def upgrade() -> None:
         sa.Column("summary", sa.Text(), nullable=False),
         sa.Column("insight", sa.Text(), nullable=True),
         sa.Column("mood", sa.Text(), nullable=True),
-        sa.Column("tags", postgresql.ARRAY(sa.Text()), nullable=False, server_default="{}"),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "tags", postgresql.ARRAY(sa.Text()), nullable=False, server_default="{}"
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
         sa.UniqueConstraint("session_id", name="uq_session_notes_session_id"),
     )
-    op.create_index("ix_session_notes_profile_id_created_at", "session_notes", ["profile_id", "created_at"])
+    op.create_index(
+        "ix_session_notes_profile_id_created_at",
+        "session_notes",
+        ["profile_id", "created_at"],
+    )
     op.create_index(
         "ix_session_notes_tags_gin",
         "session_notes",
@@ -136,7 +191,9 @@ def upgrade() -> None:
 
     op.create_table(
         "highlights",
-        sa.Column("id", postgresql.UUID(as_uuid=False), primary_key=True, nullable=False),
+        sa.Column(
+            "id", postgresql.UUID(as_uuid=False), primary_key=True, nullable=False
+        ),
         sa.Column("profile_id", postgresql.UUID(as_uuid=False), nullable=False),
         sa.Column("source_type", _source, nullable=False),
         sa.Column(
@@ -157,9 +214,24 @@ def upgrade() -> None:
         sa.Column("source_photo_path", sa.Text(), nullable=True),
         sa.Column("template_code", sa.Text(), nullable=True),
         sa.Column("visibility", _vis, nullable=False, server_default="public"),
-        sa.Column("published_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "published_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
         sa.CheckConstraint(
             "(source_type = 'session' AND session_id IS NOT NULL AND bundle_id IS NULL) "
@@ -167,8 +239,16 @@ def upgrade() -> None:
             name="ck_highlights_source_consistency",
         ),
     )
-    op.create_index("ix_highlights_profile_id_published_at", "highlights", ["profile_id", "published_at"])
-    op.create_index("ix_highlights_visibility_published_at", "highlights", ["visibility", "published_at"])
+    op.create_index(
+        "ix_highlights_profile_id_published_at",
+        "highlights",
+        ["profile_id", "published_at"],
+    )
+    op.create_index(
+        "ix_highlights_visibility_published_at",
+        "highlights",
+        ["visibility", "published_at"],
+    )
     op.create_index(
         "uq_highlights_session_id",
         "highlights",
@@ -202,8 +282,12 @@ def downgrade() -> None:
     op.drop_index("ix_sessions_profile_id_started_at", table_name="sessions")
     op.drop_table("sessions")
 
-    op.drop_index("ix_session_bundles_visibility_created_at", table_name="session_bundles")
-    op.drop_index("ix_session_bundles_profile_id_created_at", table_name="session_bundles")
+    op.drop_index(
+        "ix_session_bundles_visibility_created_at", table_name="session_bundles"
+    )
+    op.drop_index(
+        "ix_session_bundles_profile_id_created_at", table_name="session_bundles"
+    )
     op.drop_table("session_bundles")
 
     bind = op.get_bind()

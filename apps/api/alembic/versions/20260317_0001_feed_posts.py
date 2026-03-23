@@ -70,9 +70,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["post_id"], ["feed_posts.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["author_id"], ["profiles.id"], ondelete="CASCADE"),
     )
-    op.create_index(
-        "ix_feed_post_comments_post_id", "feed_post_comments", ["post_id"]
-    )
+    op.create_index("ix_feed_post_comments_post_id", "feed_post_comments", ["post_id"])
 
 
 def downgrade() -> None:
