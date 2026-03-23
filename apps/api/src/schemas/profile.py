@@ -21,6 +21,7 @@ class ProfileDTO(CamelModel):
 
 class PublicProfileDTO(CamelModel):
     """Reduced view for other users — no private fields."""
+
     id: str
     handle: str
     display_name: str
@@ -49,6 +50,7 @@ class UpdateProfileRequest(CamelModel):
 
 class ProfileAuthorDTO(CamelModel):
     """Minimal DTO used by archive and feed services for author info."""
+
     id: str
     handle: str
     display_name: str

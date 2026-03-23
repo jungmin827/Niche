@@ -3,7 +3,12 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 
 from src.config import Settings, get_settings
-from src.dependencies.repositories import get_blog_post_repo, get_highlight_repository, get_profile_repo, get_session_repository
+from src.dependencies.repositories import (
+    get_blog_post_repo,
+    get_highlight_repository,
+    get_profile_repo,
+    get_session_repository,
+)
 from src.repositories.blog_post_repo import BlogPostRepository
 from src.repositories.highlight_repo import HighlightRepository
 from src.repositories.profile_repo import ProfileRepository

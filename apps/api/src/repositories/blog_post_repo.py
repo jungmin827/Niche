@@ -36,7 +36,8 @@ class InMemoryBlogPostRepository:
 
     async def list_by_author(self, author_id: str) -> list[BlogPostRecord]:
         return [
-            r for r in self._posts.values()
+            r
+            for r in self._posts.values()
             if r.author_id == author_id and r.deleted_at is None
         ]
 
@@ -53,7 +54,8 @@ class InMemoryBlogPostRepository:
 
     async def list_all_public(self, limit: int = 50) -> list[BlogPostRecord]:
         results = [
-            r for r in self._posts.values()
+            r
+            for r in self._posts.values()
             if r.visibility == "public" and r.deleted_at is None
         ]
         results.sort(key=lambda r: r.published_at, reverse=True)

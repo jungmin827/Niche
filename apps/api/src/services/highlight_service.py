@@ -7,7 +7,12 @@ from uuid import uuid4
 
 from src import error_codes
 from src.config import Settings
-from src.exceptions import ConflictError, ForbiddenError, NotFoundError, ValidationAppError
+from src.exceptions import (
+    ConflictError,
+    ForbiddenError,
+    NotFoundError,
+    ValidationAppError,
+)
 from src.models.highlight import HighlightRecord
 from src.repositories.highlight_repo import HighlightRepository
 from src.repositories.session_repo import SessionRepository
@@ -22,7 +27,10 @@ from src.schemas.highlight import (
 )
 from src.middleware.request_id import get_request_id
 from src.security import AuthenticatedUser
-from src.services.highlight_serialization import build_highlight_detail, build_highlight_summary
+from src.services.highlight_serialization import (
+    build_highlight_detail,
+    build_highlight_summary,
+)
 
 logger = logging.getLogger("niche.highlight")
 
@@ -46,7 +54,9 @@ class HighlightService:
     async def create_highlight(
         self, *, current_user: AuthenticatedUser, payload: HighlightCreateRequest
     ) -> HighlightResponse:
-        await self._validate_source_ownership(current_user=current_user, payload=payload)
+        await self._validate_source_ownership(
+            current_user=current_user, payload=payload
+        )
 
         existing = await self._highlight_repository.find_by_source(
             source_type=payload.source_type,
@@ -71,7 +81,8 @@ class HighlightService:
             template_code=payload.template_code,
             rendered_image_path=payload.rendered_image_path,
             source_photo_path=payload.source_photo_path,
-            visibility=payload.visibility or self._settings.default_highlight_visibility,
+            visibility=payload.visibility
+            or self._settings.default_highlight_visibility,
             published_at=now,
             created_at=now,
             updated_at=now,
@@ -92,7 +103,10 @@ class HighlightService:
         self, *, current_user: AuthenticatedUser, highlight_id: str
     ) -> HighlightResponse:
         highlight = await self._require_highlight(highlight_id=highlight_id)
-        if highlight.visibility == "private" and highlight.profile_id != current_user.profile_id:
+        if (
+            highlight.visibility == "private"
+            and highlight.profile_id != current_user.profile_id
+        ):
             raise ForbiddenError()
         logger.info(
             "request_id=%s event=highlight.detail backend=%s highlight_id=%s session_id=%s bundle_id=%s profile_id=%s",
@@ -119,8 +133,12 @@ class HighlightService:
         updated = replace(
             highlight,
             title=payload.title if payload.title is not None else highlight.title,
-            caption=payload.caption if payload.caption is not None else highlight.caption,
-            visibility=payload.visibility if payload.visibility is not None else highlight.visibility,
+            caption=payload.caption
+            if payload.caption is not None
+            else highlight.caption,
+            visibility=payload.visibility
+            if payload.visibility is not None
+            else highlight.visibility,
             updated_at=_utc_now(),
         )
         saved = await self._highlight_repository.update_highlight(highlight=updated)
@@ -194,7 +212,11 @@ class HighlightService:
     ) -> HighlightListResponse:
         bounded_limit = min(limit, self._settings.highlight_list_max_limit)
         try:
-            items, next_cursor, has_next = await self._highlight_repository.list_highlights(
+            (
+                items,
+                next_cursor,
+                has_next,
+            ) = await self._highlight_repository.list_highlights(
                 profile_id=profile_id,
                 visibility=visibility,
                 cursor=cursor,
@@ -215,7 +237,9 @@ class HighlightService:
         self, *, current_user: AuthenticatedUser, payload: HighlightCreateRequest
     ) -> None:
         if payload.source_type == "session":
-            session = await self._session_repository.get_session(session_id=payload.session_id)
+            session = await self._session_repository.get_session(
+                session_id=payload.session_id
+            )
             if session is None:
                 raise NotFoundError(
                     code=error_codes.SESSION_NOT_FOUND,
@@ -228,7 +252,9 @@ class HighlightService:
         # TODO: Validate session bundle ownership when the session bundle domain exists.
 
     async def _require_highlight(self, *, highlight_id: str) -> HighlightRecord:
-        highlight = await self._highlight_repository.get_highlight(highlight_id=highlight_id)
+        highlight = await self._highlight_repository.get_highlight(
+            highlight_id=highlight_id
+        )
         if highlight is None:
             raise NotFoundError(
                 code=error_codes.HIGHLIGHT_NOT_FOUND,

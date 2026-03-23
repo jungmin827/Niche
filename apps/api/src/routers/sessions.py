@@ -29,7 +29,9 @@ def get_session_service(
     return SessionService(repository=repository, settings=settings)
 
 
-@router.post("/sessions", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/sessions", response_model=SessionResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_session(
     payload: SessionCreateRequest,
     current_user: AuthenticatedUser = Depends(get_current_user),
@@ -67,7 +69,9 @@ async def cancel_session(
     current_user: AuthenticatedUser = Depends(get_current_user),
     service: SessionService = Depends(get_session_service),
 ) -> SessionResponse:
-    return await service.cancel_session(current_user=current_user, session_id=session_id)
+    return await service.cancel_session(
+        current_user=current_user, session_id=session_id
+    )
 
 
 @router.get("/me/sessions", response_model=SessionListResponse)

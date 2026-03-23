@@ -7,7 +7,13 @@ from uuid import uuid4
 
 from src import error_codes
 from src.ai.base import AIProvider, QuizQuestion, SessionMode
-from src.exceptions import ConflictError, ForbiddenError, NotFoundError, ServiceUnavailableAppError, ValidationAppError
+from src.exceptions import (
+    ConflictError,
+    ForbiddenError,
+    NotFoundError,
+    ServiceUnavailableAppError,
+    ValidationAppError,
+)
 from src.middleware.request_id import get_request_id
 from src.models.quiz import QuizRecord
 from src.models.quiz_attempt import QuizAttemptRecord
@@ -93,7 +99,9 @@ class QuizService:
         current_user: AuthenticatedUser,
         payload: QuizJobCreateRequest,
     ) -> QuizJobResponse:
-        session = await self._session_repository.get_session(session_id=payload.session_id)
+        session = await self._session_repository.get_session(
+            session_id=payload.session_id
+        )
         if session is None:
             raise NotFoundError(
                 code=error_codes.SESSION_NOT_FOUND,
@@ -189,7 +197,11 @@ class QuizService:
             quiz.id,
             payload.session_id,
         )
-        return QuizJobResponse(job=QuizJobDTO(id=done_job.id, status=done_job.status, quiz_id=done_job.quiz_id))
+        return QuizJobResponse(
+            job=QuizJobDTO(
+                id=done_job.id, status=done_job.status, quiz_id=done_job.quiz_id
+            )
+        )
 
     async def get_job(
         self,
@@ -205,7 +217,9 @@ class QuizService:
             )
         if job.profile_id != current_user.profile_id:
             raise ForbiddenError()
-        return QuizJobResponse(job=QuizJobDTO(id=job.id, status=job.status, quiz_id=job.quiz_id))
+        return QuizJobResponse(
+            job=QuizJobDTO(id=job.id, status=job.status, quiz_id=job.quiz_id)
+        )
 
     async def get_quiz(
         self,

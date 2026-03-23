@@ -41,11 +41,15 @@ class WaveItemRow:
 
 
 class HighlightRepository(Protocol):
-    async def create_highlight(self, *, highlight: HighlightRecord) -> HighlightRecord: ...
+    async def create_highlight(
+        self, *, highlight: HighlightRecord
+    ) -> HighlightRecord: ...
 
     async def get_highlight(self, *, highlight_id: str) -> HighlightRecord | None: ...
 
-    async def update_highlight(self, *, highlight: HighlightRecord) -> HighlightRecord: ...
+    async def update_highlight(
+        self, *, highlight: HighlightRecord
+    ) -> HighlightRecord: ...
 
     async def find_by_source(
         self, *, source_type: str, session_id: str | None, bundle_id: str | None
@@ -60,7 +64,9 @@ class HighlightRepository(Protocol):
         limit: int,
     ) -> tuple[list[HighlightRecord], str | None, bool]: ...
 
-    async def count_highlights(self, *, profile_id: str, visibility: str | None) -> int: ...
+    async def count_highlights(
+        self, *, profile_id: str, visibility: str | None
+    ) -> int: ...
 
     async def delete_highlight(self, *, highlight_id: str) -> bool: ...
 
@@ -82,14 +88,19 @@ def _normalize_timestamp(value: datetime) -> datetime:
 
 def _encode_cursor(published_at: datetime, highlight_id: str) -> str:
     payload = json.dumps(
-        {"publishedAt": _normalize_timestamp(published_at).isoformat(), "id": highlight_id}
+        {
+            "publishedAt": _normalize_timestamp(published_at).isoformat(),
+            "id": highlight_id,
+        }
     ).encode("utf-8")
     return base64.urlsafe_b64encode(payload).decode("utf-8")
 
 
 def _decode_cursor(cursor: str) -> tuple[datetime, str]:
     try:
-        payload = json.loads(base64.urlsafe_b64decode(cursor.encode("utf-8")).decode("utf-8"))
+        payload = json.loads(
+            base64.urlsafe_b64decode(cursor.encode("utf-8")).decode("utf-8")
+        )
         return datetime.fromisoformat(payload["publishedAt"]), payload["id"]
     except Exception as exc:
         raise ValueError("Invalid cursor.") from exc
@@ -136,7 +147,10 @@ class InMemoryHighlightRepository:
             if highlight.profile_id == profile_id
             and (visibility is None or highlight.visibility == visibility)
         ]
-        highlights.sort(key=lambda item: (_normalize_timestamp(item.published_at), item.id), reverse=True)
+        highlights.sort(
+            key=lambda item: (_normalize_timestamp(item.published_at), item.id),
+            reverse=True,
+        )
 
         if cursor:
             cursor_published_at, cursor_id = _decode_cursor(cursor)
@@ -177,17 +191,18 @@ class InMemoryHighlightRepository:
         cursor: str | None,
         limit: int,
     ) -> tuple[list[HighlightRecord], str | None, bool]:
-        highlights = [
-            h for h in self._highlights.values() if h.visibility == "public"
-        ]
-        highlights.sort(key=lambda h: (_normalize_timestamp(h.published_at), h.id), reverse=True)
+        highlights = [h for h in self._highlights.values() if h.visibility == "public"]
+        highlights.sort(
+            key=lambda h: (_normalize_timestamp(h.published_at), h.id), reverse=True
+        )
 
         if cursor:
             cursor_published_at, cursor_id = _decode_cursor(cursor)
             highlights = [
                 h
                 for h in highlights
-                if (_normalize_timestamp(h.published_at), h.id) < (cursor_published_at, cursor_id)
+                if (_normalize_timestamp(h.published_at), h.id)
+                < (cursor_published_at, cursor_id)
             ]
 
         page = highlights[:limit]
@@ -265,14 +280,19 @@ class PostgresHighlightRepository:
             .order_by(HighlightTable.published_at.desc(), HighlightTable.id.desc())
         )
         if visibility is not None:
-            statement = statement.where(HighlightTable.visibility == _visibility_to_db(visibility))
+            statement = statement.where(
+                HighlightTable.visibility == _visibility_to_db(visibility)
+            )
 
         if cursor:
             cursor_published_at, cursor_id = _decode_cursor(cursor)
             statement = statement.where(
                 or_(
                     HighlightTable.published_at < cursor_published_at,
-                    and_(HighlightTable.published_at == cursor_published_at, HighlightTable.id < cursor_id),
+                    and_(
+                        HighlightTable.published_at == cursor_published_at,
+                        HighlightTable.id < cursor_id,
+                    ),
                 )
             )
 
@@ -284,7 +304,11 @@ class PostgresHighlightRepository:
             if has_next and page_rows:
                 last_item = page_rows[-1]
                 next_cursor = _encode_cursor(last_item.published_at, last_item.id)
-            return [self._to_highlight_record(row) for row in page_rows], next_cursor, has_next
+            return (
+                [self._to_highlight_record(row) for row in page_rows],
+                next_cursor,
+                has_next,
+            )
 
     async def count_highlights(self, *, profile_id: str, visibility: str | None) -> int:
         statement = select(func.count(HighlightTable.id)).where(
@@ -292,7 +316,9 @@ class PostgresHighlightRepository:
             HighlightTable.deleted_at.is_(None),
         )
         if visibility is not None:
-            statement = statement.where(HighlightTable.visibility == _visibility_to_db(visibility))
+            statement = statement.where(
+                HighlightTable.visibility == _visibility_to_db(visibility)
+            )
         async with self._session_factory() as db:
             count = (await db.execute(statement)).scalar_one()
             return int(count)
@@ -317,7 +343,10 @@ class PostgresHighlightRepository:
             statement = statement.where(
                 or_(
                     HighlightTable.published_at < cursor_published_at,
-                    and_(HighlightTable.published_at == cursor_published_at, HighlightTable.id < cursor_id),
+                    and_(
+                        HighlightTable.published_at == cursor_published_at,
+                        HighlightTable.id < cursor_id,
+                    ),
                 )
             )
 
@@ -329,7 +358,11 @@ class PostgresHighlightRepository:
             if has_next and page_rows:
                 last_item = page_rows[-1]
                 next_cursor = _encode_cursor(last_item.published_at, last_item.id)
-            return [self._to_highlight_record(row) for row in page_rows], next_cursor, has_next
+            return (
+                [self._to_highlight_record(row) for row in page_rows],
+                next_cursor,
+                has_next,
+            )
 
     async def get_wave_items(self, *, limit: int) -> list[WaveItemRow]:
         _require_sqlalchemy()
@@ -384,7 +417,9 @@ class PostgresHighlightRepository:
             deleted_at=None,
         )
 
-    def _assign_highlight(self, table: HighlightTable, highlight: HighlightRecord) -> None:
+    def _assign_highlight(
+        self, table: HighlightTable, highlight: HighlightRecord
+    ) -> None:
         table.profile_id = highlight.profile_id
         table.source_type = _source_type_to_db(highlight.source_type)
         table.session_id = highlight.session_id

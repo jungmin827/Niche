@@ -21,7 +21,9 @@ class MemoryMvpFlowIntegrationTest(unittest.TestCase):
 
     async def _run_scenario(self) -> None:
         transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://testserver"
+        ) as client:
             headers = {"Authorization": "Bearer memory-flow-user"}
 
             created_session = await client.post(
@@ -63,10 +65,14 @@ class MemoryMvpFlowIntegrationTest(unittest.TestCase):
             )
             self.assertEqual(updated_note.status_code, 200)
 
-            fetched_note = await client.get(f"/v1/sessions/{session_id}/note", headers=headers)
+            fetched_note = await client.get(
+                f"/v1/sessions/{session_id}/note", headers=headers
+            )
             self.assertEqual(fetched_note.status_code, 200)
             self.assertEqual(fetched_note.json()["note"]["sessionId"], session_id)
-            self.assertEqual(fetched_note.json()["note"]["summary"], "Focused on one page twice.")
+            self.assertEqual(
+                fetched_note.json()["note"]["summary"], "Focused on one page twice."
+            )
 
             created_highlight = await client.post(
                 "/v1/highlights",
@@ -88,7 +94,9 @@ class MemoryMvpFlowIntegrationTest(unittest.TestCase):
 
             archive = await client.get("/v1/me/archive", headers=headers)
             self.assertEqual(archive.status_code, 200)
-            self.assertEqual(archive.json()["highlights"]["items"][0]["id"], highlight_id)
+            self.assertEqual(
+                archive.json()["highlights"]["items"][0]["id"], highlight_id
+            )
 
             detail = await client.get(f"/v1/highlights/{highlight_id}", headers=headers)
             self.assertEqual(detail.status_code, 200)
@@ -97,15 +105,21 @@ class MemoryMvpFlowIntegrationTest(unittest.TestCase):
             self.assertIn("bundleId", highlight)
             self.assertIsNone(highlight["bundleId"])
 
-            source_session = await client.get(f"/v1/sessions/{session_id}", headers=headers)
+            source_session = await client.get(
+                f"/v1/sessions/{session_id}", headers=headers
+            )
             self.assertEqual(source_session.status_code, 200)
             source_payload = source_session.json()
             self.assertEqual(source_payload["session"]["id"], session_id)
-            self.assertEqual(source_payload["note"]["summary"], "Focused on one page twice.")
+            self.assertEqual(
+                source_payload["note"]["summary"], "Focused on one page twice."
+            )
 
     async def _run_malformed_highlight_scenario(self) -> None:
         transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://testserver"
+        ) as client:
             headers = {"Authorization": "Bearer malformed-highlight-user"}
 
             response = await client.post(
@@ -123,11 +137,16 @@ class MemoryMvpFlowIntegrationTest(unittest.TestCase):
             self.assertEqual(body["error"]["code"], "VALIDATION_ERROR")
             self.assertEqual(body["error"]["message"], "Request validation failed.")
             self.assertIsInstance(body["error"]["details"]["errors"], list)
-            self.assertIn("sourceType=session requires sessionId", body["error"]["details"]["errors"][0]["msg"])
+            self.assertIn(
+                "sourceType=session requires sessionId",
+                body["error"]["details"]["errors"][0]["msg"],
+            )
 
     async def _run_cors_preflight_scenario(self) -> None:
         transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://testserver"
+        ) as client:
             response = await client.options(
                 "/v1/me/sessions",
                 headers={
@@ -138,13 +157,19 @@ class MemoryMvpFlowIntegrationTest(unittest.TestCase):
             )
 
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.headers["access-control-allow-origin"], "http://localhost:8081")
+            self.assertEqual(
+                response.headers["access-control-allow-origin"], "http://localhost:8081"
+            )
             self.assertIn("GET", response.headers["access-control-allow-methods"])
-            self.assertIn("Authorization", response.headers["access-control-allow-headers"])
+            self.assertIn(
+                "Authorization", response.headers["access-control-allow-headers"]
+            )
 
     async def _run_bundle_highlight_scenario(self) -> None:
         transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://testserver"
+        ) as client:
             headers = {"Authorization": "Bearer bundle-highlight-user"}
             bundle_id = "11111111-1111-1111-1111-111111111111"
 

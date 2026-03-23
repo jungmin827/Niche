@@ -29,7 +29,9 @@ class UnauthorizedError(AppError):
 
 
 class ForbiddenError(AppError):
-    def __init__(self, message: str = "You do not have access to this resource.") -> None:
+    def __init__(
+        self, message: str = "You do not have access to this resource."
+    ) -> None:
         super().__init__(
             code=error_codes.FORBIDDEN,
             message=message,

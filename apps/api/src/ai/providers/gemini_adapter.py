@@ -7,7 +7,7 @@ import logging
 from google import genai
 from google.genai import types
 
-from src.ai.base import AIProvider, GeneratedQuiz, GradingResult, QuizQuestion, SessionMode
+from src.ai.base import GeneratedQuiz, GradingResult, QuizQuestion, SessionMode
 from src.ai.mappers.quiz_mapper import parse_generated_quiz, parse_grading_result
 
 logger = logging.getLogger("niche.ai.gemini")
@@ -57,78 +57,78 @@ _GRADING_SYSTEM = (
 # ---------------------------------------------------------------------------
 
 _TECHNICAL_QUESTIONS_SCHEMA = (
-    '{\n'
+    "{\n"
     '  "questions": [\n'
-    '    {\n'
+    "    {\n"
     '      "sequence_no": 1,\n'
     '      "question_type": "concept_application",\n'
     '      "intent_label": "apply_in_context",\n'
     '      "prompt_text": "<Korean: ask how they would apply the core concept in a real situation>"\n'
-    '    },\n'
-    '    {\n'
+    "    },\n"
+    "    {\n"
     '      "sequence_no": 2,\n'
     '      "question_type": "concrete_example",\n'
     '      "intent_label": "illustrate_with_example",\n'
     '      "prompt_text": "<Korean: ask them to give one specific concrete usage example>"\n'
-    '    },\n'
-    '    {\n'
+    "    },\n"
+    "    {\n"
     '      "sequence_no": 3,\n'
     '      "question_type": "conceptual_connection",\n'
     '      "intent_label": "connect_to_prior_knowledge",\n'
     '      "prompt_text": "<Korean: ask how this concept connects to other tech/concepts they already know>"\n'
-    '    }\n'
-    '  ]\n'
-    '}'
+    "    }\n"
+    "  ]\n"
+    "}"
 )
 
 _INTEREST_QUESTIONS_SCHEMA = (
-    '{\n'
+    "{\n"
     '  "questions": [\n'
-    '    {\n'
+    "    {\n"
     '      "sequence_no": 1,\n'
     '      "question_type": "key_discovery",\n'
     '      "intent_label": "what_you_found",\n'
     '      "prompt_text": "<Korean: ask what was the most new or interesting thing they discovered>"\n'
-    '    },\n'
-    '    {\n'
+    "    },\n"
+    "    {\n"
     '      "sequence_no": 2,\n'
     '      "question_type": "unexpected_finding",\n'
     '      "intent_label": "what_surprised_you",\n'
     '      "prompt_text": "<Korean: ask what was different from what they expected>"\n'
-    '    },\n'
-    '    {\n'
+    "    },\n"
+    "    {\n"
     '      "sequence_no": 3,\n'
     '      "question_type": "personal_connection",\n'
     '      "intent_label": "connect_to_life",\n'
     '      "prompt_text": "<Korean: ask how this discovery connects to their other interests or daily life>"\n'
-    '    }\n'
-    '  ]\n'
-    '}'
+    "    }\n"
+    "  ]\n"
+    "}"
 )
 
 _LITERARY_QUESTIONS_SCHEMA = (
-    '{\n'
+    "{\n"
     '  "questions": [\n'
-    '    {\n'
+    "    {\n"
     '      "sequence_no": 1,\n'
     '      "question_type": "lasting_impression",\n'
     '      "intent_label": "memorable_passage",\n'
     '      "prompt_text": "<Korean: ask which specific sentence, scene, or moment stayed with them most — invite direct quoting>"\n'
-    '    },\n'
-    '    {\n'
+    "    },\n"
+    "    {\n"
     '      "sequence_no": 2,\n'
     '      "question_type": "felt_response",\n'
     '      "intent_label": "sensory_or_emotional_reaction",\n'
     '      "prompt_text": "<Korean: ask what emotion or physical sensation arose while reading>"\n'
-    '    },\n'
-    '    {\n'
+    "    },\n"
+    "    {\n"
     '      "sequence_no": 3,\n'
     '      "question_type": "personal_meaning",\n'
     '      "intent_label": "why_it_matters_now",\n'
     '      "prompt_text": "<Korean: ask why this text felt meaningful to them right now, at this point in their life>"\n'
-    '    }\n'
-    '  ]\n'
-    '}'
+    "    }\n"
+    "  ]\n"
+    "}"
 )
 
 _QUESTION_SCHEMAS: dict[SessionMode, str] = {
@@ -182,6 +182,7 @@ _GRADING_CRITERIA: dict[SessionMode, str] = {
 # GeminiAdapter
 # ---------------------------------------------------------------------------
 
+
 class GeminiAdapter:
     def __init__(self, *, api_key: str, model: str, timeout_seconds: int) -> None:
         self._client = genai.Client(api_key=api_key)
@@ -203,7 +204,9 @@ class GeminiAdapter:
                 timeout=self._timeout_seconds,
             )
         except asyncio.TimeoutError as exc:
-            raise RuntimeError(f"AI call timed out after {self._timeout_seconds}s") from exc
+            raise RuntimeError(
+                f"AI call timed out after {self._timeout_seconds}s"
+            ) from exc
         except Exception as exc:
             raise RuntimeError(f"AI call failed: {exc}") from exc
         return response.text
@@ -236,7 +239,7 @@ class GeminiAdapter:
             "- All prompt_text must be in Korean\n"
             "- No yes/no questions\n"
             "- No multiple choice\n"
-            "- No school-exam tone (\"다음 중 올바른 것은?\" style is forbidden)\n"
+            '- No school-exam tone ("다음 중 올바른 것은?" style is forbidden)\n'
             "- Every question must be grounded in the actual session content above"
         )
 
@@ -265,7 +268,9 @@ class GeminiAdapter:
         answers: list[str],
     ) -> GradingResult:
         if len(questions) != 3:
-            raise RuntimeError(f"Expected 3 questions for grading, got {len(questions)}")
+            raise RuntimeError(
+                f"Expected 3 questions for grading, got {len(questions)}"
+            )
 
         q1, q2, q3 = questions[0], questions[1], questions[2]
         context = session_summary
@@ -285,7 +290,7 @@ class GeminiAdapter:
             f"A3: {answers[2]}\n\n"
             f"{criteria}\n\n"
             "Respond in this exact JSON format:\n"
-            '{\n'
+            "{\n"
             '  "total_score": <integer 0-100>,\n'
             '  "max_score": 100,\n'
             '  "overall_comment": "<2-3 sentences in Korean, warm but honest>",\n'
@@ -293,8 +298,8 @@ class GeminiAdapter:
             '    {"sequence_no": 1, "score": <int>, "max_score": 30, "comment": "<1 sentence in Korean>"},\n'
             '    {"sequence_no": 2, "score": <int>, "max_score": 30, "comment": "<1 sentence in Korean>"},\n'
             '    {"sequence_no": 3, "score": <int>, "max_score": 40, "comment": "<1 sentence in Korean>"}\n'
-            '  ]\n'
-            '}'
+            "  ]\n"
+            "}"
         )
 
         text = await self._call(system=_GRADING_SYSTEM, user=user_prompt)

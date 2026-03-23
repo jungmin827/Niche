@@ -5,7 +5,12 @@ from typing import Any
 
 try:
     from sqlalchemy import text
-    from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+    from sqlalchemy.ext.asyncio import (
+        AsyncEngine,
+        AsyncSession,
+        async_sessionmaker,
+        create_async_engine,
+    )
 except ModuleNotFoundError:  # pragma: no cover - exercised only in minimal local envs
     AsyncEngine = Any
     AsyncSession = Any

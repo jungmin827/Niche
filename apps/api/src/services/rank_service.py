@@ -8,15 +8,15 @@ from src.repositories.profile_repo import ProfileRepository
 logger = logging.getLogger("niche.rank")
 
 RANKS: list[tuple[int, str]] = [
-    (0,    "eveil"),
-    (15,   "seuil"),
-    (40,   "fond"),
-    (80,   "strate"),
-    (150,  "distillat"),
-    (250,  "trame"),
-    (400,  "empreinte"),
-    (600,  "corpus"),
-    (850,  "paraphe"),
+    (0, "eveil"),
+    (15, "seuil"),
+    (40, "fond"),
+    (80, "strate"),
+    (150, "distillat"),
+    (250, "trame"),
+    (400, "empreinte"),
+    (600, "corpus"),
+    (850, "paraphe"),
     (1200, "canon"),
 ]
 

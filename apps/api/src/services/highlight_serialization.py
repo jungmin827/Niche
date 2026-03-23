@@ -1,6 +1,10 @@
 from src.config import Settings
 from src.models.highlight import HighlightRecord
-from src.schemas.highlight import HighlightAuthor, HighlightDetailDTO, HighlightSummaryDTO
+from src.schemas.highlight import (
+    HighlightAuthor,
+    HighlightDetailDTO,
+    HighlightSummaryDTO,
+)
 
 
 def build_highlight_summary(
@@ -14,8 +18,12 @@ def build_highlight_summary(
         title=highlight.title,
         caption=highlight.caption,
         templateCode=highlight.template_code,
-        renderedImageUrl=build_storage_url(path=highlight.rendered_image_path, settings=settings),
-        sourcePhotoUrl=build_storage_url(path=highlight.source_photo_path, settings=settings),
+        renderedImageUrl=build_storage_url(
+            path=highlight.rendered_image_path, settings=settings
+        ),
+        sourcePhotoUrl=build_storage_url(
+            path=highlight.source_photo_path, settings=settings
+        ),
         visibility=highlight.visibility,
         publishedAt=highlight.published_at,
     )
@@ -36,8 +44,12 @@ def build_highlight_detail(
         title=highlight.title,
         caption=highlight.caption,
         templateCode=highlight.template_code,
-        renderedImageUrl=build_storage_url(path=highlight.rendered_image_path, settings=settings),
-        sourcePhotoUrl=build_storage_url(path=highlight.source_photo_path, settings=settings),
+        renderedImageUrl=build_storage_url(
+            path=highlight.rendered_image_path, settings=settings
+        ),
+        sourcePhotoUrl=build_storage_url(
+            path=highlight.source_photo_path, settings=settings
+        ),
         visibility=highlight.visibility,
         publishedAt=highlight.published_at,
     )

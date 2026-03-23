@@ -9,7 +9,10 @@ from src.dependencies.repositories import reset_repository_backends
 from src.main import app
 
 
-@unittest.skipUnless(os.getenv("NICHE_DATABASE_URL"), "NICHE_DATABASE_URL is required for Postgres integration.")
+@unittest.skipUnless(
+    os.getenv("NICHE_DATABASE_URL"),
+    "NICHE_DATABASE_URL is required for Postgres integration.",
+)
 class PostgresMvpFlowIntegrationTest(unittest.TestCase):
     def test_session_note_highlight_archive_flow_on_postgres_backend(self) -> None:
         asyncio.run(self._run_scenario())
@@ -31,7 +34,9 @@ class PostgresMvpFlowIntegrationTest(unittest.TestCase):
 
         try:
             transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            async with httpx.AsyncClient(
+                transport=transport, base_url="http://testserver"
+            ) as client:
                 headers = {"Authorization": "Bearer postgres-flow-user"}
 
                 created_session = await client.post(
@@ -58,15 +63,22 @@ class PostgresMvpFlowIntegrationTest(unittest.TestCase):
 
                 updated_note = await client.put(
                     f"/v1/sessions/{session_id}/note",
-                    json={"summary": "Persisted note updated", "tags": ["persistence", "update"]},
+                    json={
+                        "summary": "Persisted note updated",
+                        "tags": ["persistence", "update"],
+                    },
                     headers=headers,
                 )
                 self.assertEqual(updated_note.status_code, 200)
 
-                fetched_note = await client.get(f"/v1/sessions/{session_id}/note", headers=headers)
+                fetched_note = await client.get(
+                    f"/v1/sessions/{session_id}/note", headers=headers
+                )
                 self.assertEqual(fetched_note.status_code, 200)
                 self.assertEqual(fetched_note.json()["note"]["sessionId"], session_id)
-                self.assertEqual(fetched_note.json()["note"]["summary"], "Persisted note updated")
+                self.assertEqual(
+                    fetched_note.json()["note"]["summary"], "Persisted note updated"
+                )
 
                 created_highlight = await client.post(
                     "/v1/highlights",
@@ -88,15 +100,23 @@ class PostgresMvpFlowIntegrationTest(unittest.TestCase):
 
                 archive = await client.get("/v1/me/archive", headers=headers)
                 self.assertEqual(archive.status_code, 200)
-                self.assertEqual(archive.json()["highlights"]["items"][0]["id"], highlight_id)
+                self.assertEqual(
+                    archive.json()["highlights"]["items"][0]["id"], highlight_id
+                )
 
-                detail = await client.get(f"/v1/highlights/{highlight_id}", headers=headers)
+                detail = await client.get(
+                    f"/v1/highlights/{highlight_id}", headers=headers
+                )
                 self.assertEqual(detail.status_code, 200)
                 self.assertEqual(detail.json()["highlight"]["sessionId"], session_id)
 
-                source_session = await client.get(f"/v1/sessions/{session_id}", headers=headers)
+                source_session = await client.get(
+                    f"/v1/sessions/{session_id}", headers=headers
+                )
                 self.assertEqual(source_session.status_code, 200)
-                self.assertEqual(source_session.json()["note"]["summary"], "Persisted note updated")
+                self.assertEqual(
+                    source_session.json()["note"]["summary"], "Persisted note updated"
+                )
         finally:
             if previous_backend is None:
                 os.environ.pop("NICHE_SESSION_REPOSITORY_BACKEND", None)

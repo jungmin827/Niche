@@ -13,7 +13,7 @@ SessionMode = Literal["technical", "interest", "literary"]
 @dataclass
 class QuizQuestion:
     sequence_no: int
-    question_type: str   # varies by SessionMode (see gemini_adapter.py)
+    question_type: str  # varies by SessionMode (see gemini_adapter.py)
     intent_label: str
     prompt_text: str
 
@@ -34,7 +34,7 @@ class QuizAnswerGrade:
 @dataclass
 class GradingResult:
     total_score: int
-    max_score: int             # always 100
+    max_score: int  # always 100
     overall_comment: str
     question_grades: list[QuizAnswerGrade]
 
@@ -59,5 +59,5 @@ class AIProvider(Protocol):
         session_summary: str,
         session_insight: str | None,
         questions: list[QuizQuestion],
-        answers: list[str],         # index 0 = Q1, 1 = Q2, 2 = Q3
+        answers: list[str],  # index 0 = Q1, 1 = Q2, 2 = Q3
     ) -> GradingResult: ...

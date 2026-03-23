@@ -10,16 +10,30 @@ from sqlalchemy.orm import Mapped, mapped_column
 from src.models.base import Base, HighlightSourceTypeDBEnum, VisibilityDBEnum
 
 _use_values = lambda x: [e.value for e in x]  # noqa: E731
-_source_type_col = sa.Enum(HighlightSourceTypeDBEnum, name="highlight_source_type_enum", create_type=False, values_callable=_use_values)
-_visibility_col = sa.Enum(VisibilityDBEnum, name="visibility_enum", create_type=False, values_callable=_use_values)
+_source_type_col = sa.Enum(
+    HighlightSourceTypeDBEnum,
+    name="highlight_source_type_enum",
+    create_type=False,
+    values_callable=_use_values,
+)
+_visibility_col = sa.Enum(
+    VisibilityDBEnum,
+    name="visibility_enum",
+    create_type=False,
+    values_callable=_use_values,
+)
 
 
 class HighlightTable(Base):
     __tablename__ = "highlights"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
-    profile_id: Mapped[str] = mapped_column(UUID(as_uuid=False), nullable=False, index=True)
-    source_type: Mapped[HighlightSourceTypeDBEnum] = mapped_column(_source_type_col, nullable=False)
+    profile_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), nullable=False, index=True
+    )
+    source_type: Mapped[HighlightSourceTypeDBEnum] = mapped_column(
+        _source_type_col, nullable=False
+    )
     session_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), nullable=True)
     bundle_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), nullable=True)
     title: Mapped[str] = mapped_column(Text, nullable=False)
@@ -27,7 +41,9 @@ class HighlightTable(Base):
     rendered_image_path: Mapped[str] = mapped_column(Text, nullable=False)
     source_photo_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     template_code: Mapped[str | None] = mapped_column(Text, nullable=True)
-    visibility: Mapped[VisibilityDBEnum] = mapped_column(_visibility_col, nullable=False, server_default="public")
+    visibility: Mapped[VisibilityDBEnum] = mapped_column(
+        _visibility_col, nullable=False, server_default="public"
+    )
     published_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -43,4 +59,6 @@ class HighlightTable(Base):
         nullable=False,
         server_default=func.now(),
     )
-    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )

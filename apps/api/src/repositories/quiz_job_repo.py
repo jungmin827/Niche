@@ -44,13 +44,19 @@ class QuizRepository(Protocol):
 
     async def get_quiz_by_session(self, *, session_id: str) -> QuizRecord | None: ...
 
-    async def create_attempt(self, *, attempt: QuizAttemptRecord) -> QuizAttemptRecord: ...
+    async def create_attempt(
+        self, *, attempt: QuizAttemptRecord
+    ) -> QuizAttemptRecord: ...
 
-    async def get_attempt_by_quiz(self, *, quiz_id: str) -> QuizAttemptRecord | None: ...
+    async def get_attempt_by_quiz(
+        self, *, quiz_id: str
+    ) -> QuizAttemptRecord | None: ...
 
     async def get_attempt(self, *, attempt_id: str) -> QuizAttemptRecord | None: ...
 
-    async def get_job_by_session_id(self, *, session_id: str) -> QuizJobRecord | None: ...
+    async def get_job_by_session_id(
+        self, *, session_id: str
+    ) -> QuizJobRecord | None: ...
 
 
 class InMemoryQuizRepository:
@@ -239,7 +245,9 @@ class PostgresQuizRepository:
             return self._to_attempt_record(table)
 
     async def get_attempt_by_quiz(self, *, quiz_id: str) -> QuizAttemptRecord | None:
-        stmt = select(QuizAttemptTable).where(QuizAttemptTable.quiz_id == quiz_id).limit(1)
+        stmt = (
+            select(QuizAttemptTable).where(QuizAttemptTable.quiz_id == quiz_id).limit(1)
+        )
         async with self._session_factory() as db:
             row = (await db.execute(stmt)).scalar_one_or_none()
             return self._to_attempt_record(row) if row else None

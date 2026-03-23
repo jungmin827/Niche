@@ -34,10 +34,14 @@ class HighlightCreateRequest(CamelModel):
     def validate_source(self) -> "HighlightCreateRequest":
         if self.source_type == "session":
             if not self.session_id or self.bundle_id is not None:
-                raise ValueError("sourceType=session requires sessionId and null bundleId.")
+                raise ValueError(
+                    "sourceType=session requires sessionId and null bundleId."
+                )
         if self.source_type == "sessionBundle":
             if not self.bundle_id or self.session_id is not None:
-                raise ValueError("sourceType=sessionBundle requires bundleId and null sessionId.")
+                raise ValueError(
+                    "sourceType=sessionBundle requires bundleId and null sessionId."
+                )
         return self
 
 

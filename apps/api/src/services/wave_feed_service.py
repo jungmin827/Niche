@@ -7,7 +7,9 @@ from src.services.highlight_serialization import build_storage_url
 
 
 class WaveFeedService:
-    def __init__(self, *, highlight_repository: HighlightRepository, settings: Settings) -> None:
+    def __init__(
+        self, *, highlight_repository: HighlightRepository, settings: Settings
+    ) -> None:
         self._highlight_repository = highlight_repository
         self._settings = settings
 

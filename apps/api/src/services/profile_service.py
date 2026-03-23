@@ -18,7 +18,9 @@ class ProfileService:
     async def get_my_profile(self, profile_id: str) -> ProfileRecord:
         return await self._repo.get_or_create(profile_id)
 
-    async def update_my_profile(self, profile_id: str, **fields: object) -> ProfileRecord:
+    async def update_my_profile(
+        self, profile_id: str, **fields: object
+    ) -> ProfileRecord:
         return await self._repo.update(profile_id, **fields)
 
     async def get_public_profile(self, profile_id: str) -> ProfileRecord | None:

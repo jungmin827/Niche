@@ -78,7 +78,9 @@ def _encode_cursor(created_at: datetime, session_id: str) -> str:
 
 def _decode_cursor(cursor: str) -> tuple[datetime, str]:
     try:
-        payload = json.loads(base64.urlsafe_b64decode(cursor.encode("utf-8")).decode("utf-8"))
+        payload = json.loads(
+            base64.urlsafe_b64decode(cursor.encode("utf-8")).decode("utf-8")
+        )
         return datetime.fromisoformat(payload["createdAt"]), payload["id"]
     except Exception as exc:
         raise ValueError("Invalid cursor.") from exc
@@ -117,16 +119,21 @@ class InMemorySessionRepository:
         sessions = [
             session
             for session in self._sessions.values()
-            if session.profile_id == profile_id and (status is None or session.status == status)
+            if session.profile_id == profile_id
+            and (status is None or session.status == status)
         ]
-        sessions.sort(key=lambda item: (_normalize_timestamp(item.created_at), item.id), reverse=True)
+        sessions.sort(
+            key=lambda item: (_normalize_timestamp(item.created_at), item.id),
+            reverse=True,
+        )
 
         if cursor:
             cursor_created_at, cursor_id = _decode_cursor(cursor)
             sessions = [
                 session
                 for session in sessions
-                if (_normalize_timestamp(session.created_at), session.id) < (cursor_created_at, cursor_id)
+                if (_normalize_timestamp(session.created_at), session.id)
+                < (cursor_created_at, cursor_id)
             ]
 
         page = sessions[:limit]
@@ -154,7 +161,11 @@ class InMemorySessionRepository:
     async def get_completed_session_dates(self, *, profile_id: str) -> list[date]:
         dates: set[date] = set()
         for s in self._sessions.values():
-            if s.profile_id == profile_id and s.status == "completed" and s.ended_at is not None:
+            if (
+                s.profile_id == profile_id
+                and s.status == "completed"
+                and s.ended_at is not None
+            ):
                 dates.add(_normalize_timestamp(s.ended_at).date())
         return sorted(dates, reverse=True)
 
@@ -237,21 +248,26 @@ class PostgresSessionRepository:
             statement = statement.where(
                 or_(
                     SessionTable.created_at < cursor_created_at,
-                    and_(SessionTable.created_at == cursor_created_at, SessionTable.id < cursor_id),
+                    and_(
+                        SessionTable.created_at == cursor_created_at,
+                        SessionTable.id < cursor_id,
+                    ),
                 )
             )
 
         async with self._session_factory() as db:
-            rows = (
-                await db.execute(statement.limit(limit + 1))
-            ).scalars().all()
+            rows = (await db.execute(statement.limit(limit + 1))).scalars().all()
             has_next = len(rows) > limit
             page_rows = rows[:limit]
             next_cursor = None
             if has_next and page_rows:
                 last_item = page_rows[-1]
                 next_cursor = _encode_cursor(last_item.created_at, last_item.id)
-            return [self._to_session_record(row) for row in page_rows], next_cursor, has_next
+            return (
+                [self._to_session_record(row) for row in page_rows],
+                next_cursor,
+                has_next,
+            )
 
     async def get_note(self, *, session_id: str) -> SessionNoteRecord | None:
         statement = select(SessionNoteTable).where(
@@ -361,7 +377,9 @@ class PostgresSessionRepository:
 
     async def sum_completed_minutes(self, *, profile_id: str) -> int:
         _require_sqlalchemy()
-        statement = select(func.coalesce(func.sum(SessionTable.actual_minutes), 0)).where(
+        statement = select(
+            func.coalesce(func.sum(SessionTable.actual_minutes), 0)
+        ).where(
             SessionTable.profile_id == profile_id,
             SessionTable.status == SessionStatusDBEnum.COMPLETED,
             SessionTable.deleted_at.is_(None),
@@ -411,5 +429,10 @@ def _visibility_to_db(visibility: str) -> VisibilityDBEnum:
 
 
 def _require_sqlalchemy() -> None:
-    if select is None or SessionTable is None or SessionNoteTable is None or func is None:
+    if (
+        select is None
+        or SessionTable is None
+        or SessionNoteTable is None
+        or func is None
+    ):
         raise RuntimeError("SQLAlchemy is required for postgres persistence.")

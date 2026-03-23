@@ -16,5 +16,7 @@ async def health() -> dict[str, str]:
 async def ready(settings: Settings = Depends(get_settings)) -> JSONResponse:
     is_ready = await check_readiness(settings)
     payload = {"status": "ready" if is_ready else "not_ready"}
-    response_status = status.HTTP_200_OK if is_ready else status.HTTP_503_SERVICE_UNAVAILABLE
+    response_status = (
+        status.HTTP_200_OK if is_ready else status.HTTP_503_SERVICE_UNAVAILABLE
+    )
     return JSONResponse(status_code=response_status, content=payload)

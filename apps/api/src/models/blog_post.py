@@ -13,7 +13,7 @@ class BlogPostRecord:
     excerpt: str | None = None
     body_md: str = ""
     cover_image_path: str | None = None
-    visibility: str = "public"   # "public" | "private"
+    visibility: str = "public"  # "public" | "private"
     published_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))

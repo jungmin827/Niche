@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from src import error_codes
 from src.config import Settings, get_settings
 from src.exceptions import ValidationAppError
 from src.schemas.upload import ALLOWED_SCOPES, PresignRequest, PresignResponse

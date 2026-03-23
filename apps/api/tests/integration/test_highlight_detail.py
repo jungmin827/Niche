@@ -12,7 +12,9 @@ class HighlightDetailIntegrationTest(unittest.TestCase):
 
     async def _run_scenario(self) -> None:
         transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://testserver"
+        ) as client:
             headers = {"Authorization": "Bearer highlight-contract-user"}
 
             created_session = await client.post(

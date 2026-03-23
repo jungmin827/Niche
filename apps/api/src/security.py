@@ -31,7 +31,11 @@ def _fetch_jwks(supabase_url: str) -> dict:
         response = httpx.get(jwks_url, timeout=5.0)
         response.raise_for_status()
         _jwks_cache = response.json()
-        logger.info("event=jwks.loaded url=%s key_count=%s", jwks_url, len(_jwks_cache.get("keys", [])))
+        logger.info(
+            "event=jwks.loaded url=%s key_count=%s",
+            jwks_url,
+            len(_jwks_cache.get("keys", [])),
+        )
         return _jwks_cache
     except Exception as exc:
         logger.warning("event=jwks.fetch_failed url=%s reason=%s", jwks_url, exc)

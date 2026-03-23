@@ -64,7 +64,9 @@ async def list_public_blog_posts(
     return BlogPostListResponse(items=items, next_cursor=None, has_next=False)
 
 
-@router.post("/blog-posts", response_model=BlogPostEnvelope, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/blog-posts", response_model=BlogPostEnvelope, status_code=status.HTTP_201_CREATED
+)
 async def create_blog_post(
     payload: CreateBlogPostRequest,
     current_user: AuthenticatedUser = Depends(get_current_user),

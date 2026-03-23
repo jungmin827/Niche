@@ -11,7 +11,18 @@ from src import error_codes
 from src.config import get_settings
 from src.exceptions import AppError
 from src.middleware.request_id import request_id_middleware
-from src.routers import archive, blog_posts, feed, health, highlights, profiles, quizzes, session_bundles, sessions, uploads
+from src.routers import (
+    archive,
+    blog_posts,
+    feed,
+    health,
+    highlights,
+    profiles,
+    quizzes,
+    session_bundles,
+    sessions,
+    uploads,
+)
 from src.schemas.common import ErrorDetail, ErrorResponse
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
@@ -25,7 +36,9 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    app = FastAPI(title=settings.app_name, version=settings.api_version, lifespan=lifespan)
+    app = FastAPI(
+        title=settings.app_name, version=settings.api_version, lifespan=lifespan
+    )
     app.state.repository_backend = settings.session_repository_backend
     app.add_middleware(
         CORSMiddleware,
@@ -42,10 +55,14 @@ def create_app() -> FastAPI:
         payload = ErrorResponse(
             error=ErrorDetail(code=exc.code, message=exc.message, details=exc.details)
         )
-        return JSONResponse(status_code=exc.status_code, content=payload.model_dump(by_alias=True))
+        return JSONResponse(
+            status_code=exc.status_code, content=payload.model_dump(by_alias=True)
+        )
 
     @app.exception_handler(RequestValidationError)
-    async def handle_validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
+    async def handle_validation_error(
+        request: Request, exc: RequestValidationError
+    ) -> JSONResponse:
         error_details = jsonable_encoder(
             exc.errors(),
             custom_encoder={Exception: lambda value: str(value)},

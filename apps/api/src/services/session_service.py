@@ -8,7 +8,12 @@ from uuid import uuid4
 
 from src import error_codes
 from src.config import Settings
-from src.exceptions import ConflictError, ForbiddenError, NotFoundError, ValidationAppError
+from src.exceptions import (
+    ConflictError,
+    ForbiddenError,
+    NotFoundError,
+    ValidationAppError,
+)
 from src.models.session import SessionRecord
 from src.models.session_note import SessionNoteRecord
 from src.repositories.session_repo import SessionRepository
@@ -55,19 +60,27 @@ class SessionService:
     async def create_session(
         self, *, current_user: AuthenticatedUser, payload: SessionCreateRequest
     ) -> SessionResponse:
-        active_session = await self._repository.get_active_session(profile_id=current_user.profile_id)
+        active_session = await self._repository.get_active_session(
+            profile_id=current_user.profile_id
+        )
         if active_session is not None:
             raise ConflictError(
                 code=error_codes.ACTIVE_SESSION_ALREADY_EXISTS,
                 message="An active session already exists.",
             )
 
-        planned_minutes = payload.planned_minutes or self._settings.default_planned_minutes
+        planned_minutes = (
+            payload.planned_minutes or self._settings.default_planned_minutes
+        )
         if planned_minutes not in self._settings.allowed_planned_minutes:
             raise ConflictError(
                 code=error_codes.CONFLICT,
                 message="plannedMinutes is not allowed.",
-                details={"allowedPlannedMinutes": list(self._settings.allowed_planned_minutes)},
+                details={
+                    "allowedPlannedMinutes": list(
+                        self._settings.allowed_planned_minutes
+                    )
+                },
             )
 
         now = _utc_now()
@@ -100,7 +113,9 @@ class SessionService:
     async def get_session(
         self, *, current_user: AuthenticatedUser, session_id: str
     ) -> SessionDetailResponse:
-        session = await self._get_owned_session(current_user=current_user, session_id=session_id)
+        session = await self._get_owned_session(
+            current_user=current_user, session_id=session_id
+        )
         note = await self._repository.get_note(session_id=session_id)
         return SessionDetailResponse(
             session=self._to_session_detail_dto(session),
@@ -114,7 +129,9 @@ class SessionService:
         session_id: str,
         payload: SessionCompleteRequest,
     ) -> SessionResponse:
-        session = await self._get_owned_session(current_user=current_user, session_id=session_id)
+        session = await self._get_owned_session(
+            current_user=current_user, session_id=session_id
+        )
         if session.status == "completed":
             raise ConflictError(
                 code=error_codes.SESSION_ALREADY_FINISHED,
@@ -156,7 +173,9 @@ class SessionService:
     async def cancel_session(
         self, *, current_user: AuthenticatedUser, session_id: str
     ) -> SessionResponse:
-        session = await self._get_owned_session(current_user=current_user, session_id=session_id)
+        session = await self._get_owned_session(
+            current_user=current_user, session_id=session_id
+        )
         if session.status != "active":
             raise ConflictError(
                 code=error_codes.SESSION_NOT_ACTIVE,
@@ -214,7 +233,9 @@ class SessionService:
         session_id: str,
         payload: SessionNotePayload,
     ) -> SessionNoteResponse:
-        session = await self._get_owned_session(current_user=current_user, session_id=session_id)
+        session = await self._get_owned_session(
+            current_user=current_user, session_id=session_id
+        )
         if session.status != "completed":
             raise ConflictError(
                 code=error_codes.SESSION_NOT_COMPLETED,

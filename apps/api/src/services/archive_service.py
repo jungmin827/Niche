@@ -63,11 +63,19 @@ class ArchiveService:
         blog_limit: int,
         highlight_limit: int,
     ) -> MyArchiveResponse:
-        del blog_cursor  # TODO: implement blog cursor pagination when BlogPostRepository supports it
+        del (
+            blog_cursor
+        )  # TODO: implement blog cursor pagination when BlogPostRepository supports it
 
-        bounded_highlight_limit = min(highlight_limit, self._settings.highlight_list_max_limit)
+        bounded_highlight_limit = min(
+            highlight_limit, self._settings.highlight_list_max_limit
+        )
         try:
-            items, next_cursor, has_next = await self._highlight_repository.list_highlights(
+            (
+                items,
+                next_cursor,
+                has_next,
+            ) = await self._highlight_repository.list_highlights(
                 profile_id=current_user.profile_id,
                 visibility=None,
                 cursor=highlight_cursor,
@@ -79,13 +87,20 @@ class ArchiveService:
                 details={"highlightCursor": str(exc)},
             ) from exc
 
-        total_highlights, total_sessions, total_minutes, completed_dates = await _gather_stats(
+        (
+            total_highlights,
+            total_sessions,
+            total_minutes,
+            completed_dates,
+        ) = await _gather_stats(
             highlight_repository=self._highlight_repository,
             session_repository=self._session_repository,
             profile_id=current_user.profile_id,
         )
 
-        blog_posts = await self._blog_post_repository.list_by_author(current_user.profile_id)
+        blog_posts = await self._blog_post_repository.list_by_author(
+            current_user.profile_id
+        )
         blog_post_items = [
             ArchiveBlogPostItemDTO(
                 id=post.id,
@@ -97,7 +112,9 @@ class ArchiveService:
                     else None
                 ),
                 visibility=post.visibility,
-                published_at=post.published_at.isoformat() if post.published_at else None,
+                published_at=post.published_at.isoformat()
+                if post.published_at
+                else None,
             )
             for post in sorted(blog_posts, key=lambda p: p.published_at, reverse=True)
         ]
@@ -105,7 +122,8 @@ class ArchiveService:
         blog_has_next = len(blog_post_items) > blog_limit if blog_limit else False
 
         highlight_items = [
-            build_highlight_summary(highlight=item, settings=self._settings) for item in items
+            build_highlight_summary(highlight=item, settings=self._settings)
+            for item in items
         ]
 
         response = MyArchiveResponse(
@@ -117,7 +135,9 @@ class ArchiveService:
                 totalHighlights=total_highlights,
                 currentStreakDays=_compute_streak(completed_dates),
             ),
-            blogPosts=ArchiveBlogPostsResponse(items=blog_page, nextCursor=None, hasNext=blog_has_next),
+            blogPosts=ArchiveBlogPostsResponse(
+                items=blog_page, nextCursor=None, hasNext=blog_has_next
+            ),
             highlights=ArchiveHighlightsResponse(
                 items=highlight_items,
                 nextCursor=next_cursor,
@@ -146,7 +166,8 @@ class ArchiveService:
             bio=record.bio,
             avatarUrl=(
                 f"{self._settings.storage_public_base_url}/{record.avatar_path}"
-                if record.avatar_path else None
+                if record.avatar_path
+                else None
             ),
             currentRankCode=record.current_rank_code,
             rankScore=record.rank_score,
@@ -165,7 +186,13 @@ async def _gather_stats(
         profile_id=profile_id,
         visibility=None,
     )
-    total_sessions = await session_repository.count_completed_sessions(profile_id=profile_id)
-    total_minutes = await session_repository.sum_completed_minutes(profile_id=profile_id)
-    completed_dates = await session_repository.get_completed_session_dates(profile_id=profile_id)
+    total_sessions = await session_repository.count_completed_sessions(
+        profile_id=profile_id
+    )
+    total_minutes = await session_repository.sum_completed_minutes(
+        profile_id=profile_id
+    )
+    completed_dates = await session_repository.get_completed_session_dates(
+        profile_id=profile_id
+    )
     return total_highlights, total_sessions, total_minutes, completed_dates

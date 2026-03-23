@@ -1,7 +1,10 @@
 from fastapi import APIRouter, Depends, Query, status
 
 from src.config import Settings, get_settings
-from src.dependencies.repositories import get_highlight_repository, get_session_repository
+from src.dependencies.repositories import (
+    get_highlight_repository,
+    get_session_repository,
+)
 from src.repositories.highlight_repo import HighlightRepository
 from src.repositories.session_repo import SessionRepository
 from src.schemas.highlight import (
@@ -28,7 +31,9 @@ def get_highlight_service(
     )
 
 
-@router.post("/highlights", response_model=HighlightResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/highlights", response_model=HighlightResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_highlight(
     payload: HighlightCreateRequest,
     current_user: AuthenticatedUser = Depends(get_current_user),
@@ -43,7 +48,9 @@ async def get_highlight(
     current_user: AuthenticatedUser = Depends(get_current_user),
     service: HighlightService = Depends(get_highlight_service),
 ) -> HighlightResponse:
-    return await service.get_highlight(current_user=current_user, highlight_id=highlight_id)
+    return await service.get_highlight(
+        current_user=current_user, highlight_id=highlight_id
+    )
 
 
 @router.patch("/highlights/{highlight_id}", response_model=HighlightResponse)
@@ -76,7 +83,9 @@ async def list_my_highlights(
     current_user: AuthenticatedUser = Depends(get_current_user),
     service: HighlightService = Depends(get_highlight_service),
 ) -> HighlightListResponse:
-    return await service.list_my_highlights(current_user=current_user, cursor=cursor, limit=limit)
+    return await service.list_my_highlights(
+        current_user=current_user, cursor=cursor, limit=limit
+    )
 
 
 @router.get("/users/{profile_id}/highlights", response_model=HighlightListResponse)

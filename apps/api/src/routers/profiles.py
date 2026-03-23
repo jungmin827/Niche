@@ -3,11 +3,9 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from src import error_codes
-from src.config import Settings, get_settings
-from src.dependencies.repositories import get_profile_repo, get_profile_service
+from src.dependencies.repositories import get_profile_service
 from src.exceptions import NotFoundError
 from src.models.profile import ProfileRecord
-from src.repositories.profile_repo import ProfileRepository
 from src.schemas.profile import (
     ProfileDTO,
     ProfileEnvelope,
