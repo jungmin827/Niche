@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "writing-commit-messages": {
+      "source": "ghostty-org/ghostty",
+      "sourceType": "github",
+      "computedHash": "8c65e78c1af81cd9e8be138059b4f8a9d23dbae2d3432abc447a9546eba2ca0b"
+    }
+  }
+}
