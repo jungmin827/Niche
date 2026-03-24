@@ -38,8 +38,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "3b650c20-5175-4c6c-a935-7da8be807d05"
+        "projectId": "0b6b6c40-75ec-41be-84d9-fbaad8b6d4b1"
       }
-    }
+    },
+    "owner": "timmypark"
   }
 }
