@@ -104,7 +104,7 @@ class InMemoryQuizRepository:
 
     async def get_job_by_session_id(self, *, session_id: str) -> QuizJobRecord | None:
         for job in self._jobs.values():
-            if job.session_id == session_id and job.status == "done":
+            if job.session_id == session_id:
                 return job
         return None
 
@@ -188,10 +188,8 @@ class PostgresQuizRepository:
     async def get_job_by_session_id(self, *, session_id: str) -> QuizJobRecord | None:
         stmt = (
             select(QuizJobTable)
-            .where(
-                QuizJobTable.session_id == session_id,
-                QuizJobTable.status == QuizJobStatusDBEnum.DONE,
-            )
+            .where(QuizJobTable.session_id == session_id)
+            .order_by(QuizJobTable.created_at.desc())
             .limit(1)
         )
         async with self._session_factory() as db:
