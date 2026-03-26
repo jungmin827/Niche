@@ -11,13 +11,18 @@ from src.exceptions import ServiceUnavailableAppError
 from src.repositories.blog_post_repo import (
     BlogPostRepository,
     InMemoryBlogPostRepository,
+    PostgresBlogPostRepository,
 )
 from src.repositories.highlight_repo import (
     HighlightRepository,
     InMemoryHighlightRepository,
     PostgresHighlightRepository,
 )
-from src.repositories.profile_repo import InMemoryProfileRepository, ProfileRepository
+from src.repositories.profile_repo import (
+    InMemoryProfileRepository,
+    PostgresProfileRepository,
+    ProfileRepository,
+)
 from src.repositories.quiz_job_repo import (
     InMemoryQuizRepository,
     PostgresQuizRepository,
@@ -69,6 +74,24 @@ def _get_postgres_quiz_repository(database_url: str) -> PostgresQuizRepository:
         database_url=database_url, session_repository_backend="postgres"
     )
     return PostgresQuizRepository(get_async_session_factory(settings))
+
+
+@lru_cache
+def _get_postgres_profile_repository(database_url: str) -> PostgresProfileRepository:
+    settings = Settings(
+        database_url=database_url, session_repository_backend="postgres"
+    )
+    return PostgresProfileRepository(get_async_session_factory(settings))
+
+
+@lru_cache
+def _get_postgres_blog_post_repository(
+    database_url: str,
+) -> PostgresBlogPostRepository:
+    settings = Settings(
+        database_url=database_url, session_repository_backend="postgres"
+    )
+    return PostgresBlogPostRepository(get_async_session_factory(settings))
 
 
 def get_session_repository(
@@ -160,7 +183,22 @@ def get_ai_provider(settings: Settings = Depends(get_settings)) -> AIProvider:
 def get_blog_post_repo(
     settings: Settings = Depends(get_settings),
 ) -> BlogPostRepository:
-    # TODO: add PostgresBlogPostRepository when blog post persistence is needed
+    if settings.session_repository_backend == "postgres":
+        if not settings.database_url:
+            raise ServiceUnavailableAppError(
+                "Persistence backend is unavailable.",
+                details={
+                    "backend": "postgres",
+                    "reason": "NICHE_DATABASE_URL is not configured.",
+                },
+            )
+        try:
+            return _get_postgres_blog_post_repository(settings.database_url)
+        except Exception as exc:
+            raise ServiceUnavailableAppError(
+                "Persistence backend is unavailable.",
+                details={"backend": "postgres", "reason": str(exc)},
+            ) from exc
     return _memory_blog_post_repository
 
 
@@ -178,7 +216,25 @@ def get_session_bundle_repository(
     return _memory_session_bundle_repository
 
 
-def get_profile_repo() -> ProfileRepository:
+def get_profile_repo(
+    settings: Settings = Depends(get_settings),
+) -> ProfileRepository:
+    if settings.session_repository_backend == "postgres":
+        if not settings.database_url:
+            raise ServiceUnavailableAppError(
+                "Persistence backend is unavailable.",
+                details={
+                    "backend": "postgres",
+                    "reason": "NICHE_DATABASE_URL is not configured.",
+                },
+            )
+        try:
+            return _get_postgres_profile_repository(settings.database_url)
+        except Exception as exc:
+            raise ServiceUnavailableAppError(
+                "Persistence backend is unavailable.",
+                details={"backend": "postgres", "reason": str(exc)},
+            ) from exc
     return _memory_profile_repository
 
 
@@ -197,3 +253,5 @@ def reset_repository_backends() -> None:
     _get_postgres_session_repository.cache_clear()
     _get_postgres_highlight_repository.cache_clear()
     _get_postgres_quiz_repository.cache_clear()
+    _get_postgres_profile_repository.cache_clear()
+    _get_postgres_blog_post_repository.cache_clear()
