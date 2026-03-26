@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
-import { Alert, Image, StyleSheet, View } from 'react-native';
+import { Alert, Image, Pressable, StyleSheet, View } from 'react-native';
 import {
   Gesture,
   GestureDetector,
@@ -154,8 +154,6 @@ export default function SharePreviewScreen() {
   // ── Button press animations ─────────────────────────────────────────────────
   const back = usePressScale(() => router.back());
   const camera = usePressScale(handlePickImage);
-  const share = usePressScale(handleShare);
-  const archive = usePressScale(handleArchive, archiveDisabled);
 
   if (!sessionId) {
     return (
@@ -225,32 +223,35 @@ export default function SharePreviewScreen() {
 
           {/* Share | Archive */}
           <View style={[styles.actionRow, { height: spacing['6xl'] + insets.bottom }]}>
-            <GestureDetector gesture={share.gesture}>
-              <Animated.View
-                style={[styles.actionButton, { paddingBottom: insets.bottom }, share.animatedStyle]}
-              >
-                <AppText variant="bodySmall" style={styles.actionLabel}>
-                  Share
-                </AppText>
-              </Animated.View>
-            </GestureDetector>
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionButton,
+                { paddingBottom: insets.bottom },
+                pressed && styles.actionPressed,
+              ]}
+              onPress={handleShare}
+            >
+              <AppText variant="bodySmall" style={styles.actionLabel}>
+                Share
+              </AppText>
+            </Pressable>
 
             <View style={styles.actionDivider} />
 
-            <GestureDetector gesture={archive.gesture}>
-              <Animated.View
-                style={[
-                  styles.actionButton,
-                  { paddingBottom: insets.bottom },
-                  archive.animatedStyle,
-                  archiveDisabled && styles.actionDisabled,
-                ]}
-              >
-                <AppText variant="bodySmall" style={styles.actionLabel}>
-                  {createHighlightMutation.isPending ? 'Saving...' : 'Archive'}
-                </AppText>
-              </Animated.View>
-            </GestureDetector>
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionButton,
+                { paddingBottom: insets.bottom },
+                archiveDisabled && styles.actionDisabled,
+                pressed && !archiveDisabled && styles.actionPressed,
+              ]}
+              onPress={handleArchive}
+              disabled={archiveDisabled}
+            >
+              <AppText variant="bodySmall" style={styles.actionLabel}>
+                {createHighlightMutation.isPending ? 'Saving...' : 'Archive'}
+              </AppText>
+            </Pressable>
           </View>
 
         </View>
@@ -321,5 +322,8 @@ const styles = StyleSheet.create({
   },
   actionDisabled: {
     opacity: 0.4,
+  },
+  actionPressed: {
+    opacity: 0.6,
   },
 });
