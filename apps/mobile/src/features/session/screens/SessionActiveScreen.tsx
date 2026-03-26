@@ -505,6 +505,9 @@ export default function SessionActiveScreen() {
     setQuizPhase('loading');
     setQuizError(null);
     try {
+      if (memo.trim().length > 0) {
+        await noteMutation.mutateAsync({ summary: memo, insight: '' });
+      }
       const response = await createQuizJobMutation.mutateAsync(doneSessionId);
       setQuizJobId(response.job.id);
     } catch {
