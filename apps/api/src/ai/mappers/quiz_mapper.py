@@ -7,8 +7,8 @@ def parse_generated_quiz(raw: dict) -> GeneratedQuiz:
     questions_raw = raw.get("questions")
     if not isinstance(questions_raw, list):
         raise ValueError("AI response missing 'questions' list")
-    if len(questions_raw) != 3:
-        raise ValueError(f"Expected exactly 3 questions, got {len(questions_raw)}")
+    if len(questions_raw) != 1:
+        raise ValueError(f"Expected exactly 1 question, got {len(questions_raw)}")
 
     questions: list[QuizQuestion] = []
     for i, item in enumerate(questions_raw):
@@ -35,8 +35,8 @@ def parse_grading_result(raw: dict) -> GradingResult:
     grades_raw = raw["question_grades"]
     if not isinstance(grades_raw, list):
         raise ValueError("AI response 'question_grades' is not a list")
-    if len(grades_raw) != 3:
-        raise ValueError(f"Expected exactly 3 question grades, got {len(grades_raw)}")
+    if len(grades_raw) != 1:
+        raise ValueError(f"Expected exactly 1 question grade, got {len(grades_raw)}")
 
     grades: list[QuizAnswerGrade] = []
     for i, item in enumerate(grades_raw):

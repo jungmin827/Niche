@@ -19,28 +19,27 @@ logger = logging.getLogger("niche.ai.gemini")
 
 _GENERATION_SYSTEM_TECHNICAL = (
     "You are a technical depth evaluator for NichE, a deep-focus session app.\n"
-    "The user just completed a technical study session. Your job is to generate exactly 3 questions\n"
-    "that test whether they can *apply* what they learned — not just recall it.\n"
-    "Questions should probe real-world application, concrete examples, and conceptual connections.\n"
+    "The user just completed a technical study session. Your job is to generate exactly 1 question\n"
+    "that tests whether they can *apply* what they learned — not just recall it.\n"
+    "The question should probe real-world application.\n"
     "Avoid trivia or yes/no questions. Reward depth of understanding over memorisation.\n"
     "Respond with valid JSON only. No markdown. No explanation outside the JSON."
 )
 
 _GENERATION_SYSTEM_INTEREST = (
     "You are a curiosity depth assessor for NichE, a deep-focus session app.\n"
-    "The user just completed a niche-interest exploration session. Your job is to generate exactly 3 questions\n"
-    "that surface the quality of their discoveries and insights.\n"
-    "Questions should ask what they found, what surprised them, and how it connects to their wider world.\n"
-    "Avoid generic questions. Every question must be grounded in the actual session content.\n"
+    "The user just completed a niche-interest exploration session. Your job is to generate exactly 1 question\n"
+    "that surfaces the quality of their discoveries and insights.\n"
+    "The question should ask what they found most interesting or surprising.\n"
+    "Avoid generic questions. The question must be grounded in the actual session content.\n"
     "Respond with valid JSON only. No markdown. No explanation outside the JSON."
 )
 
 _GENERATION_SYSTEM_LITERARY = (
     "You are a reflective reading companion for NichE, a deep-focus session app.\n"
     "The user just completed a reading session — a book, essay, or prose work.\n"
-    "Your job is to generate exactly 3 questions that invite them to share what resonated,\n"
-    "which specific moments or sentences stayed with them, and what personal meaning they found.\n"
-    "The first question must explicitly invite quoting or naming a specific passage or scene.\n"
+    "Your job is to generate exactly 1 question that invites them to share what resonated most.\n"
+    "The question must explicitly invite quoting or naming a specific passage or scene.\n"
     "Avoid analytical or academic framing. The tone should feel like a quiet, genuine conversation.\n"
     "Respond with valid JSON only. No markdown. No explanation outside the JSON."
 )
@@ -64,18 +63,6 @@ _TECHNICAL_QUESTIONS_SCHEMA = (
     '      "question_type": "concept_application",\n'
     '      "intent_label": "apply_in_context",\n'
     '      "prompt_text": "<Korean: ask how they would apply the core concept in a real situation>"\n'
-    "    },\n"
-    "    {\n"
-    '      "sequence_no": 2,\n'
-    '      "question_type": "concrete_example",\n'
-    '      "intent_label": "illustrate_with_example",\n'
-    '      "prompt_text": "<Korean: ask them to give one specific concrete usage example>"\n'
-    "    },\n"
-    "    {\n"
-    '      "sequence_no": 3,\n'
-    '      "question_type": "conceptual_connection",\n'
-    '      "intent_label": "connect_to_prior_knowledge",\n'
-    '      "prompt_text": "<Korean: ask how this concept connects to other tech/concepts they already know>"\n'
     "    }\n"
     "  ]\n"
     "}"
@@ -89,18 +76,6 @@ _INTEREST_QUESTIONS_SCHEMA = (
     '      "question_type": "key_discovery",\n'
     '      "intent_label": "what_you_found",\n'
     '      "prompt_text": "<Korean: ask what was the most new or interesting thing they discovered>"\n'
-    "    },\n"
-    "    {\n"
-    '      "sequence_no": 2,\n'
-    '      "question_type": "unexpected_finding",\n'
-    '      "intent_label": "what_surprised_you",\n'
-    '      "prompt_text": "<Korean: ask what was different from what they expected>"\n'
-    "    },\n"
-    "    {\n"
-    '      "sequence_no": 3,\n'
-    '      "question_type": "personal_connection",\n'
-    '      "intent_label": "connect_to_life",\n'
-    '      "prompt_text": "<Korean: ask how this discovery connects to their other interests or daily life>"\n'
     "    }\n"
     "  ]\n"
     "}"
@@ -114,18 +89,6 @@ _LITERARY_QUESTIONS_SCHEMA = (
     '      "question_type": "lasting_impression",\n'
     '      "intent_label": "memorable_passage",\n'
     '      "prompt_text": "<Korean: ask which specific sentence, scene, or moment stayed with them most — invite direct quoting>"\n'
-    "    },\n"
-    "    {\n"
-    '      "sequence_no": 2,\n'
-    '      "question_type": "felt_response",\n'
-    '      "intent_label": "sensory_or_emotional_reaction",\n'
-    '      "prompt_text": "<Korean: ask what emotion or physical sensation arose while reading>"\n'
-    "    },\n"
-    "    {\n"
-    '      "sequence_no": 3,\n'
-    '      "question_type": "personal_meaning",\n'
-    '      "intent_label": "why_it_matters_now",\n'
-    '      "prompt_text": "<Korean: ask why this text felt meaningful to them right now, at this point in their life>"\n'
     "    }\n"
     "  ]\n"
     "}"
@@ -209,6 +172,8 @@ class GeminiAdapter:
             ) from exc
         except Exception as exc:
             raise RuntimeError(f"AI call failed: {exc}") from exc
+        if not response.text:
+            raise RuntimeError("AI returned an empty response (possible safety filter)")
         return response.text
 
     async def generate_quiz(
@@ -233,14 +198,14 @@ class GeminiAdapter:
             f"Key insight noted: {session_insight or 'none'}\n"
             f"Mood: {session_mood or 'unspecified'}\n"
             f"Tags: {tags_str}\n\n"
-            f"Generate exactly 3 questions in this JSON format:\n"
+            f"Generate exactly 1 question in this JSON format:\n"
             f"{schema}\n\n"
             "Rules:\n"
             "- All prompt_text must be in Korean\n"
             "- No yes/no questions\n"
             "- No multiple choice\n"
             '- No school-exam tone ("다음 중 올바른 것은?" style is forbidden)\n'
-            "- Every question must be grounded in the actual session content above"
+            "- The question must be grounded in the actual session content above"
         )
 
         text = await self._call(system=system, user=user_prompt)
@@ -250,7 +215,10 @@ class GeminiAdapter:
         except (json.JSONDecodeError, ValueError) as exc:
             raise RuntimeError("AI response was not valid JSON") from exc
 
-        result = parse_generated_quiz(raw)
+        try:
+            result = parse_generated_quiz(raw)
+        except ValueError as exc:
+            raise RuntimeError(f"AI response had unexpected structure: {exc}") from exc
         logger.info(
             "event=ai.generate_quiz mode=%s questions=%s",
             session_mode,
@@ -267,12 +235,12 @@ class GeminiAdapter:
         questions: list[QuizQuestion],
         answers: list[str],
     ) -> GradingResult:
-        if len(questions) != 3:
+        if len(questions) != 1:
             raise RuntimeError(
-                f"Expected 3 questions for grading, got {len(questions)}"
+                f"Expected 1 question for grading, got {len(questions)}"
             )
 
-        q1, q2, q3 = questions[0], questions[1], questions[2]
+        q1 = questions[0]
         context = session_summary
         if session_insight:
             context += f". {session_insight}"
@@ -281,13 +249,9 @@ class GeminiAdapter:
 
         user_prompt = (
             f"Session context: {context}\n\n"
-            f"Questions and answers:\n"
-            f"Q1 (max 30 pts): {q1.prompt_text}\n"
+            f"Question and answer:\n"
+            f"Q1 (max 100 pts): {q1.prompt_text}\n"
             f"A1: {answers[0]}\n\n"
-            f"Q2 (max 30 pts): {q2.prompt_text}\n"
-            f"A2: {answers[1]}\n\n"
-            f"Q3 (max 40 pts): {q3.prompt_text}\n"
-            f"A3: {answers[2]}\n\n"
             f"{criteria}\n\n"
             "Respond in this exact JSON format:\n"
             "{\n"
@@ -295,9 +259,7 @@ class GeminiAdapter:
             '  "max_score": 100,\n'
             '  "overall_comment": "<2-3 sentences in Korean, warm but honest>",\n'
             '  "question_grades": [\n'
-            '    {"sequence_no": 1, "score": <int>, "max_score": 30, "comment": "<1 sentence in Korean>"},\n'
-            '    {"sequence_no": 2, "score": <int>, "max_score": 30, "comment": "<1 sentence in Korean>"},\n'
-            '    {"sequence_no": 3, "score": <int>, "max_score": 40, "comment": "<1 sentence in Korean>"}\n'
+            '    {"sequence_no": 1, "score": <int>, "max_score": 100, "comment": "<1 sentence in Korean>"}\n'
             "  ]\n"
             "}"
         )
@@ -309,7 +271,10 @@ class GeminiAdapter:
         except (json.JSONDecodeError, ValueError) as exc:
             raise RuntimeError("AI response was not valid JSON") from exc
 
-        result = parse_grading_result(raw)
+        try:
+            result = parse_grading_result(raw)
+        except ValueError as exc:
+            raise RuntimeError(f"AI response had unexpected structure: {exc}") from exc
         logger.info(
             "event=ai.grade_quiz mode=%s total_score=%s max_score=%s",
             session_mode,
