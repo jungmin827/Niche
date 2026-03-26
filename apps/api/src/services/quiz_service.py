@@ -114,17 +114,52 @@ class QuizService:
             session_id=payload.session_id
         )
         if existing_quiz is not None:
+            existing_job = await self._quiz_repository.get_job_by_session_id(
+                session_id=payload.session_id
+            )
+            if existing_job is not None:
+                if existing_job.status == "done":
+                    return QuizJobResponse(
+                        job=QuizJobDTO(
+                            id=existing_job.id,
+                            status=existing_job.status,
+                            quiz_id=existing_job.quiz_id,
+                        )
+                    )
+                # Job is in failed/processing state but quiz exists — heal the inconsistency
+                logger.info(
+                    "request_id=%s event=quiz.job.heal job_id=%s status=%s quiz_id=%s",
+                    get_request_id(),
+                    existing_job.id,
+                    existing_job.status,
+                    existing_quiz.id,
+                )
+                healed_job = replace(
+                    existing_job,
+                    status="done",
+                    quiz_id=existing_quiz.id,
+                    updated_at=_utc_now(),
+                )
+                healed_job = await self._quiz_repository.update_job(job=healed_job)
+                return QuizJobResponse(
+                    job=QuizJobDTO(
+                        id=healed_job.id,
+                        status=healed_job.status,
+                        quiz_id=healed_job.quiz_id,
+                    )
+                )
             raise ConflictError(
                 code=error_codes.QUIZ_ALREADY_EXISTS,
                 message="A quiz already exists for this session.",
             )
 
         note = await self._session_repository.get_note(session_id=payload.session_id)
-        if note is None:
-            raise ConflictError(
-                code=error_codes.QUIZ_SOURCE_NOT_READY,
-                message="Session note is required before generating a quiz.",
-            )
+        session_summary = (
+            note.summary if note else (session.topic or session.subject or "unspecified")
+        )
+        session_insight = note.insight if note else None
+        session_mood = note.mood if note else None
+        session_tags = note.tags if note else []
 
         now = _utc_now()
         job = await self._quiz_repository.create_job(
@@ -139,10 +174,11 @@ class QuizService:
             )
         )
         logger.info(
-            "request_id=%s event=quiz.job.start job_id=%s session_id=%s",
+            "request_id=%s event=quiz.job.start job_id=%s session_id=%s has_note=%s",
             get_request_id(),
             job.id,
             payload.session_id,
+            note is not None,
         )
 
         session_mode = _detect_session_mode(session.source)
@@ -158,10 +194,10 @@ class QuizService:
                 session_mode=session_mode,
                 session_topic=session.topic,
                 session_subject=session.subject,
-                session_summary=note.summary,
-                session_insight=note.insight,
-                session_mood=note.mood,
-                session_tags=note.tags,
+                session_summary=session_summary,
+                session_insight=session_insight,
+                session_mood=session_mood,
+                session_tags=session_tags,
             )
         except RuntimeError as exc:
             logger.exception(
@@ -267,10 +303,10 @@ class QuizService:
                 message="This quiz has already been submitted.",
             )
 
-        if len(payload.answers) != 3:
+        if len(payload.answers) != 1:
             raise ValidationAppError(
-                "Expected exactly 3 answers.",
-                details={"expected": 3, "actual": len(payload.answers)},
+                "Expected exactly 1 answer.",
+                details={"expected": 1, "actual": len(payload.answers)},
             )
 
         session = await self._session_repository.get_session(session_id=quiz.session_id)
