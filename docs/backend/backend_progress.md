@@ -1,6 +1,6 @@
 # NichE Backend Progress — apps/api
 
-> 마지막 업데이트: 2026-03-17 (feed 도메인 완료 + rank 시스템 완료)
+> 마지막 업데이트: 2026-03-26 (AI 퀴즈 파이프라인 전체 완료)
 > 기준 문서: `backend_fastapi.md`, `backend_api_contract.md`
 
 ---
@@ -13,9 +13,9 @@
 | Phase 2 | 세션 도메인 (create / complete / cancel / note) | ✅ 완료 |
 | Profile | GET/PATCH /me, GET /users/{id} | ✅ 완료 |
 | Phase 3 | 아카이브 (blog posts + highlights + archive endpoint) | ✅ 완료 (갭 있음) |
-| Phase 4 | 피드 (feed-posts + comments) | ✅ 완료 |
-| Phase 5 | AI / Quiz / Worker / Rank | ⚠️ 부분 완료 |
-| Migrations | DB 스키마 마이그레이션 | ⚠️ 부분 완료 |
+| Phase 4 | 피드 — Text Wave (`GET /v1/feed/wave`) | ✅ 완료 |
+| Phase 5 | AI / Quiz / Rank | ✅ 완료 |
+| Migrations | DB 스키마 마이그레이션 | ✅ 완료 (`head: 20260322_0003`) |
 
 ---
 
@@ -51,7 +51,7 @@
 ### 구현 특이사항
 
 - Repository를 Protocol로 추상화 → `InMemorySessionRepository` + `PostgresSessionRepository` 양쪽 구현
-- session_note 필드: spec의 `summary`, `insight`, `source_title` 기준에서 **`mood`, `tags` 추가 / `source_title` 미포함**으로 확장됨
+- session_note 필드: `mood`, `tags` 추가 / `source_title` 미포함으로 확장됨
 
 ---
 
@@ -64,6 +64,8 @@
 | `GET /v1/users/{userId}` | ✅ public만 노출 |
 
 - `get_or_create`: 프로필 미존재 시 stub 자동 생성
+- `PostgresProfileRepository` 완전 구현: profiles INSERT 후 `await db.flush()` → profile_stats FK 제약 충족
+- `InMemoryProfileRepository` + `PostgresProfileRepository` 양쪽 구현 완료
 
 ---
 
@@ -80,6 +82,8 @@
 | `GET /v1/me/blog-posts` | ✅ |
 | `GET /v1/users/{userId}/blog-posts` | ❌ 미구현 |
 
+- `PostgresBlogPostRepository` 완전 구현 (`author_id` ↔ `profile_id` 매핑 포함)
+
 ### Highlights
 
 | 엔드포인트 | 상태 |
@@ -91,7 +95,7 @@
 | `GET /v1/me/highlights` | ✅ cursor pagination |
 | `GET /v1/users/{userId}/highlights` | ✅ public only |
 
-- highlight 필드: spec의 `subtitle`, `template_type`, `cover_payload_json` 대신 **`caption`, `rendered_image_path`, `source_photo_path`, `template_code`** 구조로 구현됨
+- highlight 필드: `caption`, `rendered_image_path`, `source_photo_path`, `template_code` 구조
 
 ### Archive
 
@@ -102,44 +106,47 @@
 
 ---
 
-## Phase 4 — 피드 ✅
+## Phase 4 — 피드 (Text Wave) ✅
 
-### Feed Posts
-
-| 엔드포인트 | 상태 |
-|---|---|
-| `GET /v1/feed-posts` | ✅ 인증 불필요, 만료된 포스트 자동 필터 |
-| `POST /v1/feed-posts` | ✅ 인증 필요, 내용 50자 제한 |
-| `DELETE /v1/feed-posts/{postId}` | ✅ 작성자만 삭제 가능 |
-| `GET /v1/feed-posts/{postId}/comments` | ✅ 인증 불필요 |
-| `POST /v1/feed-posts/{postId}/comments` | ✅ 인증 필요, 내용 20자 제한, 만료된 포스트 차단 |
-| `DELETE /v1/feed-posts/{postId}/comments/{commentId}` | ✅ 작성자만 삭제 가능 |
-
-### 구현 특이사항
-
-- `FeedPostRecord.expires_at = created_at + 24h` (서비스 레이어에서 설정)
-- `list_active_posts`: `expires_at > now()` 조건으로 만료 필터링
-- `delete_expired_posts()`: 하드 delete (soft delete 없음)
-- post 삭제 시 댓글 cascade 삭제
-- `FeedAuthorDTO`: `handle`, `display_name` 포함 — `ProfileRepository.get_or_create` 경유
-- InMemory backend만 구현 (PostgresFeedPostRepository는 TODO)
-- Migration: `20260317_0001_feed_posts.py` (`feed_posts`, `feed_post_comments` 테이블)
-
-### Blog Posts 추가 엔드포인트
+> 구 `feed_posts` + `feed_post_comments` 소셜 스크롤 방식은 완전히 제거되었다.
+> Feed 탭은 `GET /v1/feed/wave` 단일 엔드포인트로 교체되었다.
 
 | 엔드포인트 | 상태 |
 |---|---|
-| `GET /v1/blog-posts` | ✅ 인증 불필요, 전체 공개 포스트 목록 (`authorId` 포함) |
+| `GET /v1/feed/wave` | ✅ 구현 완료 |
+
+### 구현 내용
+
+- **데이터 원천**: `highlights` 테이블 (24h TTL, `ORDER BY RANDOM()`)
+- **인증**: Bearer token 필수
+- **응답**: `WaveFeedResponse { waveItems: WaveItemDTO[] }`
+- **WaveItemDTO 필드**: `highlightId`, `title`, `authorHandle`, `topic | null`, `imageUrl | null`
+- `imageUrl`: `build_storage_url()` (`highlight_serialization.py`) 재사용
+- 24h 내 결과 0건이어도 `200 + waveItems: []` 반환
+
+### 구현 파일
+
+- `src/routers/feed.py`
+- `src/services/wave_feed_service.py`
+- `src/schemas/feed.py` — `WaveItemDTO`, `WaveFeedResponse`
+
+### 제거된 파일 (구 feed_posts)
+
+- `src/services/feed_post_service.py` ❌ 삭제
+- `src/repositories/feed_post_repo.py` ❌ 삭제
+- `src/models/feed_post.py` ❌ 삭제
+
+> `feed_posts`, `feed_post_comments` DB 테이블은 잔존 (migration rollback 미시행). 서비스 레이어에서 더 이상 접근하지 않음.
 
 ---
 
-## Phase 5 — AI / Quiz / Rank ⚠️
+## Phase 5 — AI / Quiz / Rank ✅
 
 ### 엔드포인트
 
 | 엔드포인트 | 상태 |
 |---|---|
-| `POST /v1/quizzes/jobs` | ⚠️ 동기 처리 방식 (아래 참조) |
+| `POST /v1/quizzes/jobs` | ✅ 멱등 처리, note 없을 시 topic fallback |
 | `GET /v1/quizzes/jobs/{jobId}` | ✅ |
 | `GET /v1/quizzes/{quizId}` | ✅ |
 | `POST /v1/quizzes/{quizId}/attempts` | ✅ AI 채점 + rank 적립 포함 |
@@ -147,36 +154,41 @@
 | `GET /v1/sessions/{sessionId}/quiz-result` | ✅ |
 | `GET /v1/me/quizzes` | ❌ 미구현 |
 
-### Quiz 생성 방식 divergence
+### Quiz 생성 방식
 
-spec 설계:
+현재 구현 (동기):
 ```
-queued → (worker picks up) → processing → succeeded/failed
-```
-
-현재 구현:
-```
-POST /v1/quizzes/jobs 요청 안에서 AI 직접 호출 → processing → done/failed
+POST /v1/quizzes/jobs → AI 직접 호출 → processing → done/failed
 ```
 
-- worker 프로세스 (`src/worker/quiz_worker.py`) — **파일만 존재, 내용 없음**
-- 현재 구현은 AI 응답 대기 동안 HTTP 요청이 블로킹됨
-- 장기적으로 Gemini 응답 지연 시 UX 문제 발생 가능
+- AI 응답 대기 동안 HTTP 요청이 블로킹됨
+- 클라이언트 타임아웃 방어: 엔드포인트 멱등 설계 — 재시도 시 기존 quiz/job 반환
 
-### Rank ✅
+### Quiz 파이프라인 주요 구현사항 (2026-03-26)
 
-- `src/services/rank_service.py` — **완전 구현됨**
-- 10개 등급 정의: `eveil(0)` → `seuil(15)` → `fond(40)` → `strate(80)` → `distillat(150)` → `trame(250)` → `empreinte(400)` → `corpus(600)` → `paraphe(850)` → `canon(1200)`
-- `evaluate_rank(score)` — 누적 점수 기반 등급 계산
-- `RankService.add_score(profile_id, points)` — 점수 적립 + 등급 재계산 + 승급 로깅
-- `ProfileRecord`: `current_rank_code`, `rank_score` 필드 보유
-- **QuizService에 연결됨**: `submit_attempt` 시 점수 적립 → rank 자동 업데이트
+- **1개 질문 구조**: 3개 → 1개로 간소화 (mapper, adapter, schema, service 전체 반영)
+- **멱등성**: quiz 이미 존재 시 done job 반환. job이 failed/processing 상태이면 done으로 heal 후 반환
+- **note fallback**: session note 없을 때 topic/subject로 대체 (403 → 생성 허용)
+- **Gemini 모델**: `gemini-2.5-flash` (구 `gemini-1.5-flash`는 v1beta에서 사용 불가)
+- **프론트 버그 수정**: `handleReflect`에서 note 저장 후 quiz job 생성 순서 보장
 
 ### AI Provider
 
-- `src/ai/providers/gemini_adapter.py` — Gemini 연동 구현
-- `src/ai/base.py` — AIProvider protocol 정의
-- `src/ai/mappers/quiz_mapper.py` — 응답 파싱
+| 파일 | 내용 |
+|---|---|
+| `src/ai/providers/gemini_adapter.py` | Gemini 연동 (google-genai SDK, async) |
+| `src/ai/base.py` | AIProvider protocol |
+| `src/ai/mappers/quiz_mapper.py` | AI 응답 파싱 (1 question/grade 검증) |
+
+- 모드별 system prompt: `technical` / `interest` / `literary`
+- 채점 기준: Q1 max 100pt 단일 문항
+- 응답 검증: `parse_generated_quiz`, `parse_grading_result` — ValueError → RuntimeError 변환
+
+### Rank ✅
+
+- `src/services/rank_service.py` — 완전 구현
+- 10개 등급: `eveil(0)` → `seuil(15)` → `fond(40)` → `strate(80)` → `distillat(150)` → `trame(250)` → `empreinte(400)` → `corpus(600)` → `paraphe(850)` → `canon(1200)`
+- `submit_attempt` 시 점수 적립 → rank 자동 업데이트
 
 ---
 
@@ -188,36 +200,54 @@ POST /v1/quizzes/jobs 요청 안에서 AI 직접 호출 → processing → done/
 
 ---
 
-## Session Bundle (spec 외 도메인)
+## Session Bundle
 
-- `session_bundle` — 여러 세션을 묶는 개념으로 추가됨 (spec에 없음)
+- 여러 세션을 묶는 개념으로 추가됨
 - router, service, repository, model, schema, migration 모두 구현됨
 - highlight의 source_type이 `session` | `session_bundle` 양쪽 지원
+- `PostgresSessionBundleRepository` 미구현 (TODO)
 
 ---
 
-## DB Migrations ⚠️
+## DB Migrations ✅
 
-현재 마이그레이션 2개:
+현재 head: `20260322_0003`
 
 | 마이그레이션 | 내용 |
 |---|---|
 | `20260313_0001_session_highlight_slice` | session_bundles, sessions, session_notes, highlights |
-| `20260317_0001_feed_posts` | feed_posts, feed_post_comments |
+| `20260317_0001_feed_posts` | feed_posts, feed_post_comments (서비스 미사용, 테이블 잔존) |
+| `20260322_0001_profiles` | profiles, profile_stats |
+| `20260322_0002_blog_posts` | blog_posts |
+| `20260322_0003_quiz_tables` | quiz_job_status_enum, quiz_jobs, quizzes, quiz_attempts |
 
-| 테이블 | 상태 |
-|---|---|
-| `session_bundles` | ✅ |
-| `sessions` | ✅ |
-| `session_notes` | ✅ |
-| `highlights` | ✅ |
-| `feed_posts` | ✅ |
-| `feed_post_comments` | ✅ |
-| `profiles` | ❌ migration 없음 |
-| `blog_posts` | ❌ migration 없음 |
-| `quiz_jobs` | ❌ migration 없음 |
-| `quizzes` | ❌ migration 없음 |
-| `quiz_attempts` | ❌ migration 없음 |
+| 테이블 | 상태 | 비고 |
+|---|---|---|
+| `session_bundles` | ✅ | |
+| `sessions` | ✅ | |
+| `session_notes` | ✅ | |
+| `highlights` | ✅ | Text Wave 데이터 원천 |
+| `profiles` | ✅ | `20260322_0001` |
+| `profile_stats` | ✅ | `20260322_0001` |
+| `blog_posts` | ✅ | `20260322_0002` |
+| `quiz_jobs` | ✅ | `20260322_0003` |
+| `quizzes` | ✅ | `20260322_0003` |
+| `quiz_attempts` | ✅ | `20260322_0003` |
+| `feed_posts` | ⚠️ 서비스 미사용 | Text Wave 전환 후 테이블 잔존 |
+| `feed_post_comments` | ⚠️ 서비스 미사용 | Text Wave 전환 후 테이블 잔존 |
+
+---
+
+## Repository 구현 현황
+
+| Repository | InMemory | Postgres |
+|---|---|---|
+| `SessionRepository` | ✅ | ✅ |
+| `HighlightRepository` | ✅ | ✅ |
+| `ProfileRepository` | ✅ | ✅ |
+| `BlogPostRepository` | ✅ | ✅ |
+| `QuizRepository` | ✅ | ✅ |
+| `SessionBundleRepository` | ✅ | ❌ TODO |
 
 ---
 
@@ -231,9 +261,13 @@ POST /v1/quizzes/jobs 요청 안에서 AI 직접 호출 → processing → done/
 
 ---
 
-## 우선 해결이 필요한 갭
+## 남은 갭
 
-1. **DB migrations** — profiles, blog_posts, quiz_jobs, quizzes, quiz_attempts 테이블 migration 없음
-2. **Quiz worker** — 동기 AI 호출을 DB-backed job 비동기 처리로 전환 필요 (현재 request 블로킹)
-3. **누락 엔드포인트** — `GET /v1/me/quizzes`, `GET /v1/users/{userId}/blog-posts`, `GET /v1/users/{userId}/archive`
-4. **Postgres 미구현 repo** — FeedPostRepository, BlogPostRepository, QuizRepository, SessionBundleRepository, ProfileRepository (InMemory만 존재)
+1. **누락 엔드포인트**
+   - `GET /v1/me/quizzes` — 미구현
+   - `GET /v1/users/{userId}/blog-posts` — 미구현
+   - `GET /v1/users/{userId}/archive` — 미구현
+2. **PostgresSessionBundleRepository** — InMemory만 구현됨
+3. **Quiz worker 비동기 전환** — 현재 AI 호출이 HTTP 요청 블로킹. 장기적으로 DB-backed job + worker 프로세스 전환 권장
+4. **feed_posts 테이블 정리** — 서비스에서 미사용 중이나 테이블이 DB에 잔존. migration rollback 또는 명시적 drop 필요
+5. **Quiz 질문 수 확장** — 현재 검증 단계를 위해 1개로 간소화됨. 안정화 후 3개로 복원 예정
