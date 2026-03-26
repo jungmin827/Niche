@@ -43,7 +43,7 @@ class QuizResponse(CamelModel):
 
 
 class QuizAttemptCreateRequest(CamelModel):
-    answers: Annotated[list[str], Field(min_length=3, max_length=3)]
+    answers: Annotated[list[str], Field(min_length=1, max_length=1)]
 
 
 class QuizAnswerGradeDTO(CamelModel):
