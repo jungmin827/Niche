@@ -18,7 +18,6 @@ export const routes = {
   quizLoading: '/(modals)/quiz-loading',
   quizAnswer: '/(modals)/quiz-answer',
   quizResult: '/(modals)/quiz-result',
-  highlightCreate: '/(modals)/highlight-create' as const,
   highlightSessionPicker: '/(modals)/highlight-session-picker' as const,
   highlightViewer: (highlightId: string) =>
     ({ pathname: '/(modals)/highlight-viewer' as const, params: { highlightId } }),
