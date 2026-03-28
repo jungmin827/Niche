@@ -9,6 +9,7 @@ import AppCard from '../../../components/ui/AppCard';
 import AppText from '../../../components/ui/AppText';
 import { toApiError } from '../../../lib/error';
 import { routes } from '../../../constants/routes';
+import { getRankByCode, getNextRank, getRankProgress } from '../../../constants/ranks';
 import { BlogPostListItem } from '../../blog/types';
 import { Highlight } from '../../share/types';
 import { useArchiveQuery } from '../hooks';
@@ -198,12 +199,55 @@ export default function ArchiveHomeScreen() {
                 <AppText style={{ fontSize: 18, fontWeight: '700', color: '#111' }}>
                   {archive.profile.displayName}
                 </AppText>
-                <AppText variant="caption" style={{ color: '#8A8A84' }}>
-                  {archive.profile.currentRankCode}
-                </AppText>
+
+                {/* Rank title + score */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <AppText variant="caption" style={{ color: '#111', fontWeight: '600' }}>
+                    {getRankByCode(archive.profile.currentRankCode).title}
+                  </AppText>
+                  <AppText variant="caption" style={{ color: '#8A8A84' }}>
+                    {archive.profile.rankScore} pts
+                  </AppText>
+                </View>
+
+                {/* Progress bar toward next rank */}
+                {(() => {
+                  const nextRank = getNextRank(archive.profile.currentRankCode);
+                  const progress = getRankProgress(
+                    archive.profile.rankScore,
+                    archive.profile.currentRankCode,
+                  );
+                  return (
+                    <View style={{ gap: 3, marginTop: 2 }}>
+                      <View
+                        style={{
+                          height: 2,
+                          backgroundColor: '#EFEFEA',
+                          borderRadius: 1,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <View
+                          style={{
+                            height: 2,
+                            width: `${Math.round(progress * 100)}%`,
+                            backgroundColor: '#111',
+                          }}
+                        />
+                      </View>
+                      {nextRank && (
+                        <AppText variant="caption" style={{ color: '#8A8A84', fontSize: 10 }}>
+                          Next: {nextRank.title} · {nextRank.minScore} pts
+                        </AppText>
+                      )}
+                    </View>
+                  );
+                })()}
+
+                {/* Stats row */}
                 <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
                   <AppText variant="caption" style={{ color: '#8A8A84' }}>
-                    Sessions {archive.stats.totalSessions}
+                    {archive.stats.totalSessions} sessions
                   </AppText>
                   <AppText variant="caption" style={{ color: '#8A8A84' }}>·</AppText>
                   <AppText variant="caption" style={{ color: '#8A8A84' }}>
@@ -211,7 +255,7 @@ export default function ArchiveHomeScreen() {
                   </AppText>
                   <AppText variant="caption" style={{ color: '#8A8A84' }}>·</AppText>
                   <AppText variant="caption" style={{ color: '#8A8A84' }}>
-                    {archive.stats.currentStreakDays} day streak
+                    {archive.stats.currentStreakDays}d streak
                   </AppText>
                 </View>
               </View>
