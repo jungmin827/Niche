@@ -17,8 +17,8 @@ export default function SessionDetailScreen() {
   if (!sessionId) {
     return (
       <Screen>
-        <TopBar title="세션" leadingLabel="닫기" onLeadingPress={() => router.replace(routes.sessionHome)} />
-        <AppText variant="body">세션을 찾을 수 없습니다.</AppText>
+        <TopBar title="Session" leadingLabel="Close" onLeadingPress={() => router.replace(routes.sessionHome)} />
+        <AppText variant="body">Session not found.</AppText>
       </Screen>
     );
   }
@@ -29,56 +29,65 @@ export default function SessionDetailScreen() {
   return (
     <Screen scroll>
       <TopBar
-        title="세션 기록"
-        subtitle="남겨둔 시간과 문장을 다시 봅니다."
-        leadingLabel="닫기"
+        title="Session"
+        leadingLabel="Close"
         onLeadingPress={() => router.replace(routes.sessionHome)}
       />
 
       {detailQuery.isLoading ? (
-        <AppText variant="body">세션을 불러오는 중입니다.</AppText>
+        <AppText variant="body">Loading...</AppText>
       ) : detailQuery.isError ? (
         <AppCard className="gap-4 bg-[#F6F6F4]">
-          <AppText variant="title">세션을 불러오지 못했습니다.</AppText>
+          <AppText variant="title">Could not load session.</AppText>
           <AppText variant="bodySmall" className="text-[#555555]">
             {toApiError(detailQuery.error).message}
           </AppText>
-          <AppButton label="다시 시도" variant="secondary" onPress={() => detailQuery.refetch()} />
+          <AppButton label="Retry" variant="secondary" onPress={() => detailQuery.refetch()} />
         </AppCard>
       ) : session ? (
         <View className="gap-6">
           <SessionSummaryCard session={session} />
 
           <AppCard className="gap-5">
-            <AppText variant="title">기록</AppText>
+            <AppText variant="title">Notes</AppText>
             {note ? (
               <View className="gap-5">
                 <View className="gap-2">
                   <AppText variant="caption" className="text-[#8A8A84]">
-                    무엇을 봤나요?
+                    What did you explore?
                   </AppText>
                   <AppText variant="body">{note.summary}</AppText>
                 </View>
                 {note.insight ? (
                   <View className="gap-2">
                     <AppText variant="caption" className="text-[#8A8A84]">
-                      어떤 점이 남았나요?
+                      What stayed with you?
                     </AppText>
                     <AppText variant="body">{note.insight}</AppText>
                   </View>
                 ) : null}
                 <AppButton
-                  label="하이라이트 만들기"
+                  label="Create Highlight"
                   onPress={() => router.push(routes.sharePreviewModal(sessionId ?? ''))}
+                />
+                <AppButton
+                  label="Edit Note"
+                  variant="secondary"
+                  onPress={() =>
+                    router.push({
+                      pathname: routes.sessionNoteModal,
+                      params: { sessionId },
+                    })
+                  }
                 />
               </View>
             ) : (
               <View className="gap-4">
                 <AppText variant="bodySmall" className="text-[#555555]">
-                  아직 기록이 없습니다.
+                  No note yet.
                 </AppText>
                 <AppButton
-                  label="기록하기"
+                  label="Add Note"
                   onPress={() =>
                     router.push({
                       pathname: routes.sessionNoteModal,
@@ -92,7 +101,7 @@ export default function SessionDetailScreen() {
 
         </View>
       ) : (
-        <AppText variant="body">세션을 찾을 수 없습니다.</AppText>
+        <AppText variant="body">Session not found.</AppText>
       )}
     </Screen>
   );
