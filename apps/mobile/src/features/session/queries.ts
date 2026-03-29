@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getMySessions, getSession, getSessionNote } from '../../api/session';
+import { getSessionBundle } from '../../api/session-bundle';
 import { queryKeys } from '../../constants/queryKeys';
 import { Session } from './types';
 
@@ -68,5 +69,13 @@ export function useSessionNoteQuery(sessionId: string) {
     queryKey: queryKeys.sessionNote(sessionId),
     queryFn: async () => getSessionNote(sessionId),
     enabled: Boolean(sessionId),
+  });
+}
+
+export function useSessionBundleQuery(bundleId: string) {
+  return useQuery({
+    queryKey: ['session-bundle', bundleId],
+    queryFn: async () => getSessionBundle(bundleId),
+    enabled: Boolean(bundleId),
   });
 }
