@@ -30,6 +30,7 @@ from src.repositories.quiz_job_repo import (
 )
 from src.repositories.session_bundle_repo import (
     InMemorySessionBundleRepository,
+    PostgresSessionBundleRepository,
     SessionBundleRepository,
 )
 from src.repositories.session_repo import (
@@ -209,10 +210,35 @@ def get_blog_post_service(
     return BlogPostService(repo=repo, settings=settings)
 
 
+@lru_cache
+def _get_postgres_session_bundle_repository(
+    database_url: str,
+) -> PostgresSessionBundleRepository:
+    settings = Settings(
+        database_url=database_url, session_repository_backend="postgres"
+    )
+    return PostgresSessionBundleRepository(get_async_session_factory(settings))
+
+
 def get_session_bundle_repository(
     settings: Settings = Depends(get_settings),
 ) -> SessionBundleRepository:
-    # TODO: add PostgresSessionBundleRepository when session bundle persistence is needed
+    if settings.session_repository_backend == "postgres":
+        if not settings.database_url:
+            raise ServiceUnavailableAppError(
+                "Persistence backend is unavailable.",
+                details={
+                    "backend": "postgres",
+                    "reason": "NICHE_DATABASE_URL is not configured.",
+                },
+            )
+        try:
+            return _get_postgres_session_bundle_repository(settings.database_url)
+        except Exception as exc:
+            raise ServiceUnavailableAppError(
+                "Persistence backend is unavailable.",
+                details={"backend": "postgres", "reason": str(exc)},
+            ) from exc
     return _memory_session_bundle_repository
 
 
@@ -255,3 +281,4 @@ def reset_repository_backends() -> None:
     _get_postgres_quiz_repository.cache_clear()
     _get_postgres_profile_repository.cache_clear()
     _get_postgres_blog_post_repository.cache_clear()
+    _get_postgres_session_bundle_repository.cache_clear()
