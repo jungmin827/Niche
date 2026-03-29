@@ -72,6 +72,23 @@ You are implementing backend code for NichE inside `apps/api`.
 
 ---
 
+## 2026-03-29 구현 이력 (2차)
+
+### Session Bundle — PostgresSessionBundleRepository 구현
+- 기존 `InMemorySessionBundleRepository` 고정 → 서버 재시작 시 번들 데이터 소멸 문제 해결
+- `alembic/versions/20260329_0001_session_bundle_session_ids.py`: `session_ids UUID[]` 컬럼 추가, `started_at`/`ended_at`/`total_minutes` nullable로 변경
+- `src/models/session_tables.py`: `SessionBundleTable`에 `session_ids` 필드 추가 및 nullable 반영
+- `src/repositories/session_bundle_repo.py`: `PostgresSessionBundleRepository` 추가 (create / get_by_id / list_by_profile)
+- `src/dependencies/repositories.py`: `_get_postgres_session_bundle_repository` lru_cache factory 추가, `get_session_bundle_repository()` postgres 분기 연결, `reset_repository_backends()` 업데이트
+
+### DB — RLS 전체 테이블 활성화
+- `alembic/versions/20260329_0002_enable_rls.py`: 도메인 테이블 12개 전체에 `ENABLE ROW LEVEL SECURITY` + `FORCE ROW LEVEL SECURITY` 적용
+- 대상: sessions, session_notes, session_bundles, highlights, profiles, profile_stats, blog_posts, quiz_jobs, quizzes, quiz_attempts, feed_posts, feed_post_comments
+- 명시적 policy 없음 → anon/authenticated 역할의 직접 DB 접근 차단
+- FastAPI postgres superuser 연결은 RLS 자동 우회, 앱 동작 영향 없음
+
+---
+
 ### Migration 작성 주의사항
 - Enum 타입 정의 시 두 객체 패턴 필수 (기존 `20260313_0001` 참조):
   ```python
