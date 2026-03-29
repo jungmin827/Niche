@@ -24,9 +24,10 @@ import { usePressScale } from '../../../hooks/usePressScale';
 import { toApiError } from '../../../lib/error';
 import { colors } from '../../../theme/colors';
 import { spacing } from '../../../theme/spacing';
-import { useSessionDetailQuery, useSessionHomeQuery } from '../../session/hooks';
+import { useSessionBundleQuery, useSessionDetailQuery, useSessionHomeQuery } from '../../session/hooks';
 import { captureTemplate, shareCapturedTemplate } from '../capture';
 import {
+  buildBundleShareModel,
   buildHighlightCaption,
   buildHighlightTitle,
   buildShareModel,
@@ -36,13 +37,17 @@ import { useCreateHighlightMutation } from '../hooks';
 const TEMPLATE_SPRING = { stiffness: 180, damping: 22, mass: 0.8 } as const;
 
 export default function SharePreviewScreen() {
-  const { sessionId, quizScore } = useLocalSearchParams<{
+  const { sessionId, bundleId, quizScore } = useLocalSearchParams<{
     sessionId?: string;
+    bundleId?: string;
     quizScore?: string;
   }>();
 
+  const isBundleMode = Boolean(bundleId && bundleId.length > 0);
+
   const insets = useSafeAreaInsets();
-  const detailQuery = useSessionDetailQuery(sessionId ?? '');
+  const detailQuery = useSessionDetailQuery(isBundleMode ? '' : (sessionId ?? ''));
+  const bundleQuery = useSessionBundleQuery(isBundleMode ? (bundleId ?? '') : '');
   const homeQuery = useSessionHomeQuery();
   const createHighlightMutation = useCreateHighlightMutation();
   const previewRef = useRef<View>(null);
@@ -50,16 +55,22 @@ export default function SharePreviewScreen() {
 
   const session = detailQuery.data?.session ?? null;
   const note = detailQuery.data?.note ?? null;
+  const bundle = bundleQuery.data?.bundle ?? null;
 
   const parsedScore = quizScore != null ? parseInt(quizScore, 10) : null;
   const scoreValue = parsedScore != null && !isNaN(parsedScore) ? parsedScore : null;
 
   const streakDays = homeQuery.data?.currentStreakDays ?? 0;
+  const rankLabel = homeQuery.data?.rankLabel ?? 'Surface';
 
   const model = useMemo(() => {
+    if (isBundleMode) {
+      if (!bundle) return null;
+      return buildBundleShareModel({ bundle, templateCode: 'nike_v1', rankLabel, streakDays });
+    }
     if (!session) return null;
     return buildShareModel({ session, note, templateCode: 'nike_v1', quizScore: scoreValue, streakDays });
-  }, [session, note, scoreValue, streakDays]);
+  }, [isBundleMode, bundle, session, note, scoreValue, streakDays, rankLabel]);
 
   // ── Template drag + pinch ───────────────────────────────────────────────────
   const translateX = useSharedValue(0);
@@ -128,22 +139,38 @@ export default function SharePreviewScreen() {
   };
 
   const handleArchive = async () => {
-    if (!session || !model) return;
+    if (!model) return;
     try {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       const renderedImagePath = await captureTemplate(previewRef);
-      const response = await createHighlightMutation.mutateAsync({
-        sourceType: 'session',
-        sessionId: session.id,
-        bundleId: null,
-        title: buildHighlightTitle(session),
-        caption: buildHighlightCaption(note),
-        templateCode: 'nike_v1',
-        renderedImagePath,
-        sourcePhotoPath: backgroundUri,
-        visibility: 'public',
-      });
-      router.replace(routes.archiveHighlightDetail(response.highlight.id));
+
+      if (isBundleMode && bundle) {
+        const response = await createHighlightMutation.mutateAsync({
+          sourceType: 'sessionBundle',
+          sessionId: null,
+          bundleId: bundle.id,
+          title: bundle.title,
+          caption: `${bundle.sessionIds.length} sessions`,
+          templateCode: 'nike_v1',
+          renderedImagePath,
+          sourcePhotoPath: backgroundUri,
+          visibility: 'public',
+        });
+        router.replace(routes.archiveHighlightDetail(response.highlight.id));
+      } else if (session) {
+        const response = await createHighlightMutation.mutateAsync({
+          sourceType: 'session',
+          sessionId: session.id,
+          bundleId: null,
+          title: buildHighlightTitle(session),
+          caption: buildHighlightCaption(note),
+          templateCode: 'nike_v1',
+          renderedImagePath,
+          sourcePhotoPath: backgroundUri,
+          visibility: 'public',
+        });
+        router.replace(routes.archiveHighlightDetail(response.highlight.id));
+      }
     } catch (error) {
       Alert.alert('Could not save.', toApiError(error).message);
     }
@@ -155,10 +182,20 @@ export default function SharePreviewScreen() {
   const back = usePressScale(() => router.back());
   const camera = usePressScale(handlePickImage);
 
-  if (!sessionId) {
+  const isLoading = isBundleMode ? bundleQuery.isLoading : detailQuery.isLoading;
+
+  if (!sessionId && !bundleId) {
     return (
       <View style={styles.centeredFill}>
-        <AppText variant="body">Session not found.</AppText>
+        <AppText variant="body">Nothing to preview.</AppText>
+      </View>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <View style={styles.centeredFill}>
+        <AppText variant="bodySmall" style={{ color: colors.text.tertiary }}>Loading...</AppText>
       </View>
     );
   }
@@ -208,7 +245,7 @@ export default function SharePreviewScreen() {
             </Animated.View>
           </GestureDetector>
 
-          {/* Camera icon — bottom-left, sits above the action row */}
+          {/* Camera icon */}
           <GestureDetector gesture={camera.gesture}>
             <Animated.View
               style={[
@@ -275,7 +312,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     letterSpacing: 1.5,
   },
-  // Template starts bottom-right; pan/pinch translate from this anchor
   templateAnchor: {
     position: 'absolute',
     bottom: spacing['6xl'] + spacing.xl,
