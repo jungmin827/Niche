@@ -23,8 +23,7 @@ You are implementing backend code for NichE inside `apps/api`.
 - Use precise names
 
 ## Current Focus
-- Session domain: create / read / complete / note
-- `me/profile` bootstrap only if required for session flow
+- Storage 연결 완료, 신규 작업은 없음 (배포 준비 단계)
 
 ---
 
@@ -52,6 +51,26 @@ You are implementing backend code for NichE inside `apps/api`.
 - `src/repositories/quiz_job_repo.py`: `PostgresQuizRepository` 추가
   - JSONB 직렬화: `dataclasses.asdict()` / `ClassName(**dict)` 패턴
 - `src/dependencies/repositories.py`: `get_quiz_repository()` postgres 분기 추가, `_get_postgres_quiz_repository` lru_cache factory
+
+---
+
+## 2026-03-29 구현 이력
+
+### Supabase Storage 실제 연결
+- `src/config.py`: `supabase_service_role_key: str | None = None` 필드 추가
+- `src/services/upload_service.py`: `generate_presign` async 전환, httpx로 Supabase Storage `POST /storage/v1/object/upload/sign/{bucket}/{path}` 호출
+  - `supabase_service_role_key` 미설정 시 stub URL fallback (warning 로그)
+  - signed URL 응답의 상대 경로 `/object/upload/sign/...` → `{supabase_url}/storage/v1{signed_path}` 조합
+- `src/routers/uploads.py`: `await service.generate_presign(...)` 적용
+- `.env`: `NICHE_SUPABASE_SERVICE_ROLE_KEY`, `NICHE_STORAGE_PUBLIC_BASE_URL` 추가
+- Supabase Storage `content` 버킷 생성 (public)
+- `build_storage_url()` 조합 URL: `{storage_public_base_url}/content/highlight/{user_id}/{uuid}/rendered.png` — 정상 작동 확인
+
+### Session Bundle — GET 엔드포인트 확인
+- `GET /v1/session-bundles/{bundle_id}` 및 `POST /v1/session-bundles` 이미 구현 완료 상태
+- 프론트 연결을 위한 별도 백엔드 변경 없음
+
+---
 
 ### Migration 작성 주의사항
 - Enum 타입 정의 시 두 객체 패턴 필수 (기존 `20260313_0001` 참조):
