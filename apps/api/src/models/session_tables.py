@@ -110,12 +110,17 @@ class SessionBundleTable(Base):
         UUID(as_uuid=False), nullable=False, index=True
     )
     title: Mapped[str] = mapped_column(Text, nullable=False)
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    started_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
+    session_ids: Mapped[list[str]] = mapped_column(
+        ARRAY(UUID(as_uuid=False)), nullable=False, server_default="{}"
     )
-    ended_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    total_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    ended_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    total_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     visibility: Mapped[VisibilityDBEnum] = mapped_column(
         _visibility_col, nullable=False, server_default="public"
     )
