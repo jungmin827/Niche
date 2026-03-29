@@ -1,4 +1,5 @@
 import { formatSessionDate } from '../../lib/date';
+import { SessionBundleDTO } from '../../api/session-bundle';
 import { Session, SessionNote } from '../session/types';
 import { HighlightTemplateCode, ShareModel } from './types';
 
@@ -21,7 +22,9 @@ export function buildShareModel(args: {
   const { session, note, templateCode, rankLabel = 'Surface', quizScore = null, streakDays = 0 } = args;
 
   return {
+    sourceType: 'session',
     sessionId: session.id,
+    bundleId: null,
     title: buildHighlightTitle(session),
     caption: buildHighlightCaption(note),
     templateCode,
@@ -31,6 +34,32 @@ export function buildShareModel(args: {
     noteSummary: note?.summary ?? '',
     noteInsight: note?.insight ?? '',
     quizScore,
+    streakDays,
+  };
+}
+
+export function buildBundleShareModel(args: {
+  bundle: SessionBundleDTO;
+  templateCode: HighlightTemplateCode;
+  rankLabel?: string;
+  streakDays?: number;
+}): ShareModel {
+  const { bundle, templateCode, rankLabel = 'Surface', streakDays = 0 } = args;
+  const estimatedMinutes = bundle.sessionIds.length * 15;
+
+  return {
+    sourceType: 'sessionBundle',
+    sessionId: null,
+    bundleId: bundle.id,
+    title: bundle.title,
+    caption: `${bundle.sessionIds.length} sessions`,
+    templateCode,
+    focusLabel: `${estimatedMinutes}m of focus`,
+    dateLabel: formatSessionDate(bundle.createdAt),
+    rankLabel,
+    noteSummary: '',
+    noteInsight: '',
+    quizScore: null,
     streakDays,
   };
 }
