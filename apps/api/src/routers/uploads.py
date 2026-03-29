@@ -26,7 +26,7 @@ async def presign_upload(
             f"Invalid scope '{payload.scope}'. Allowed: {sorted(ALLOWED_SCOPES)}",
             details={"scope": payload.scope, "allowed": sorted(ALLOWED_SCOPES)},
         )
-    return service.generate_presign(
+    return await service.generate_presign(
         user_id=current_user.profile_id,
         bucket=payload.bucket,
         scope=payload.scope,
