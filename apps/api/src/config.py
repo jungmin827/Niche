@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     database_url: str | None = None
     supabase_url: str | None = None  # https://<project-ref>.supabase.co
     supabase_jwt_secret: str | None = None
+    supabase_service_role_key: str | None = None
     default_session_visibility: Literal["public", "private"] = "public"
     default_highlight_visibility: Literal["public", "private"] = "public"
     default_planned_minutes: int = 15
@@ -31,7 +32,7 @@ class Settings(BaseSettings):
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-1.5-flash"
     ai_request_timeout_seconds: int = 30
-    storage_public_base_url: str = "https://storage.niche.local"
+    storage_public_base_url: str = "https://storage.niche.local"  # override with NICHE_STORAGE_PUBLIC_BASE_URL
     cors_allow_origins: tuple[str, ...] = Field(
         default=("http://localhost:8081", "http://127.0.0.1:8081"),
     )
