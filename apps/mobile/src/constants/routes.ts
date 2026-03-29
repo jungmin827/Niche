@@ -6,9 +6,13 @@ export const routes = {
   sessionComplete: '/(tabs)/session/complete',
   sessionDetail: (sessionId: string) => `/(tabs)/session/${sessionId}`,
   sessionNoteModal: '/(modals)/session-note',
-  sharePreviewModal: (sessionId: string, quizScore?: number) => ({
+  sharePreviewModal: (params: { sessionId?: string; bundleId?: string; quizScore?: number }) => ({
     pathname: '/(modals)/share-preview' as const,
-    params: { sessionId, quizScore: quizScore?.toString() ?? '' },
+    params: {
+      sessionId: params.sessionId ?? '',
+      bundleId: params.bundleId ?? '',
+      quizScore: params.quizScore?.toString() ?? '',
+    },
   }),
   archiveHome: '/(tabs)/archive',
   archiveHighlightDetail: (highlightId: string) => `/(tabs)/archive/highlight/${highlightId}`,
