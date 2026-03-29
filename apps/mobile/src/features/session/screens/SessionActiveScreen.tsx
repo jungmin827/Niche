@@ -215,6 +215,7 @@ export default function SessionActiveScreen() {
   const pauseStartedAt = useSessionStore((s) => s.pauseStartedAt);
   const setPaused = useSessionStore((s) => s.setPaused);
   const incrementCompleted = useSessionStore((s) => s.incrementCompletedSessionCount);
+  const addCompletedSessionId = useSessionStore((s) => s.addCompletedSessionId);
 
   const isPaused = pauseStartedAt !== null;
   const completeMutation = useCompleteSessionMutation();
@@ -475,6 +476,7 @@ export default function SessionActiveScreen() {
       throw err;
     }
     incrementCompleted();
+    addCompletedSessionId(sessionId_);
     setDoneSessionId(sessionId_);
     setDoneElapsedSeconds(elapsed);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -555,7 +557,7 @@ export default function SessionActiveScreen() {
       await clearSessionNoteDraft(doneSessionId);
     }
     const score = quizAttempt?.totalScore ?? null;
-    router.push(routes.sharePreviewModal(doneSessionId, score ?? undefined));
+    router.push(routes.sharePreviewModal({ sessionId: doneSessionId, quizScore: score ?? undefined }));
   };
 
   // ── Quiz result helpers ───────────────────────────────────────────────────
