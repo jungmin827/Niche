@@ -12,6 +12,7 @@ type PersistedSessionState = {
   pauseStartedAt: string | null;
   plannedSessionCount: number;
   completedSessionCount: number;
+  completedSessionIds: string[];
 };
 
 const initialSessionState: PersistedSessionState = {
@@ -23,6 +24,7 @@ const initialSessionState: PersistedSessionState = {
   pauseStartedAt: null,
   plannedSessionCount: 1,
   completedSessionCount: 0,
+  completedSessionIds: [],
 };
 
 async function writeSessionState(state: PersistedSessionState) {
@@ -50,6 +52,7 @@ type SessionStoreState = {
   pauseStartedAt: PersistedSessionState['pauseStartedAt'];
   plannedSessionCount: number;
   completedSessionCount: number;
+  completedSessionIds: string[];
   hasHydrated: boolean;
   setActiveSession: (payload: {
     sessionId: string;
@@ -62,6 +65,7 @@ type SessionStoreState = {
   clearActiveSession: () => void;
   setPlannedSessionCount: (count: number) => void;
   incrementCompletedSessionCount: () => void;
+  addCompletedSessionId: (sessionId: string) => void;
   resetSessionCounts: () => void;
   markHydrated: () => void;
 };
@@ -79,6 +83,7 @@ export const useSessionStore = create<SessionStoreState>()((set, get) => ({
       pauseStartedAt: null,
       plannedSessionCount: get().plannedSessionCount,
       completedSessionCount: get().completedSessionCount,
+      completedSessionIds: get().completedSessionIds,
     };
     set(nextState);
     void writeSessionState(nextState);
@@ -94,16 +99,18 @@ export const useSessionStore = create<SessionStoreState>()((set, get) => ({
         pauseStartedAt,
         plannedSessionCount: state.plannedSessionCount,
         completedSessionCount: state.completedSessionCount,
+        completedSessionIds: state.completedSessionIds,
       };
       void writeSessionState(nextState);
       return { pauseStartedAt };
     }),
   clearActiveSession: () => {
-    const { plannedSessionCount, completedSessionCount } = get();
+    const { plannedSessionCount, completedSessionCount, completedSessionIds } = get();
     const next: PersistedSessionState = {
       ...initialSessionState,
       plannedSessionCount,
       completedSessionCount,
+      completedSessionIds,
     };
     set(next);
     void writeSessionState(next);
@@ -119,6 +126,7 @@ export const useSessionStore = create<SessionStoreState>()((set, get) => ({
         pauseStartedAt: state.pauseStartedAt,
         plannedSessionCount: count,
         completedSessionCount: state.completedSessionCount,
+        completedSessionIds: state.completedSessionIds,
       };
       void writeSessionState(next);
       return { plannedSessionCount: count };
@@ -135,9 +143,27 @@ export const useSessionStore = create<SessionStoreState>()((set, get) => ({
         pauseStartedAt: state.pauseStartedAt,
         plannedSessionCount: state.plannedSessionCount,
         completedSessionCount: state.completedSessionCount + 1,
+        completedSessionIds: state.completedSessionIds,
       };
       void writeSessionState(next);
       return { completedSessionCount: next.completedSessionCount };
+    });
+  },
+  addCompletedSessionId: (sessionId) => {
+    set((state) => {
+      const next: PersistedSessionState = {
+        activeSessionId: state.activeSessionId,
+        activeSessionStartedAt: state.activeSessionStartedAt,
+        activeSessionPlannedMinutes: state.activeSessionPlannedMinutes,
+        activeSessionTopic: state.activeSessionTopic,
+        activeSessionSubject: state.activeSessionSubject,
+        pauseStartedAt: state.pauseStartedAt,
+        plannedSessionCount: state.plannedSessionCount,
+        completedSessionCount: state.completedSessionCount,
+        completedSessionIds: [...state.completedSessionIds, sessionId],
+      };
+      void writeSessionState(next);
+      return { completedSessionIds: next.completedSessionIds };
     });
   },
   resetSessionCounts: () => {
@@ -151,9 +177,10 @@ export const useSessionStore = create<SessionStoreState>()((set, get) => ({
         pauseStartedAt: state.pauseStartedAt,
         plannedSessionCount: 1,
         completedSessionCount: 0,
+        completedSessionIds: [],
       };
       void writeSessionState(next);
-      return { plannedSessionCount: 1, completedSessionCount: 0 };
+      return { plannedSessionCount: 1, completedSessionCount: 0, completedSessionIds: [] };
     });
   },
   markHydrated: () => set({ hasHydrated: true }),
