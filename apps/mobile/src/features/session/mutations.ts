@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createSession, completeSession, cancelSession, upsertSessionNote } from '../../api/session';
+import { createSessionBundle, CreateSessionBundleInput } from '../../api/session-bundle';
 import { queryKeys } from '../../constants/queryKeys';
 import { ApiError } from '../../lib/error';
 import { CreateSessionInput, UpsertSessionNoteInput } from './types';
@@ -87,5 +88,11 @@ export function useUpsertSessionNoteMutation(sessionId: string) {
         note,
       }));
     },
+  });
+}
+
+export function useCreateSessionBundleMutation() {
+  return useMutation({
+    mutationFn: (input: CreateSessionBundleInput) => createSessionBundle(input),
   });
 }
