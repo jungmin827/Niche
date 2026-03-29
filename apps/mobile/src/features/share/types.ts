@@ -38,7 +38,9 @@ export type HighlightCreateInput = {
 };
 
 export type ShareModel = {
-  sessionId: string;
+  sourceType: HighlightSourceType;
+  sessionId: string | null;
+  bundleId: string | null;
   title: string;
   caption: string;
   templateCode: HighlightTemplateCode;
