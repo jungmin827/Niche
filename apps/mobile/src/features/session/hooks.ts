@@ -1,5 +1,6 @@
 export {
   useRecentSessionsQuery,
+  useSessionBundleQuery,
   useSessionDetailQuery,
   useSessionHomeQuery,
   useSessionNoteQuery,
@@ -8,6 +9,7 @@ export {
   useCancelSessionMutation,
   useCompleteSessionMutation,
   useCreateSessionMutation,
+  useCreateSessionBundleMutation,
   useUpsertSessionNoteMutation,
 } from './mutations';
 export { useSessionStore } from './store';
