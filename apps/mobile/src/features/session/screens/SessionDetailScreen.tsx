@@ -68,7 +68,7 @@ export default function SessionDetailScreen() {
                 ) : null}
                 <AppButton
                   label="Create Highlight"
-                  onPress={() => router.push(routes.sharePreviewModal(sessionId ?? ''))}
+                  onPress={() => router.push(routes.sharePreviewModal({ sessionId: sessionId ?? '' }))}
                 />
                 <AppButton
                   label="Edit Note"
