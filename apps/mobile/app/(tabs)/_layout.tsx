@@ -1,10 +1,13 @@
 import { Feather } from '@expo/vector-icons';
 import { router, Tabs } from 'expo-router';
 import { useEffect } from 'react';
+import { Pressable, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthSession } from '../../src/hooks/useAuthSession';
 
 export default function TabsLayout() {
   const { state } = useAuthSession();
+  const insets = useSafeAreaInsets();
 
   // 비인증 상태로 탭에 접근하면 welcome으로 내보냄
   useEffect(() => {
@@ -14,6 +17,7 @@ export default function TabsLayout() {
   }, [state]);
 
   return (
+    <View style={{ flex: 1 }}>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -63,5 +67,24 @@ export default function TabsLayout() {
         }}
       />
     </Tabs>
+      <Pressable
+        onPress={() => router.push('/(modals)/jitter')}
+        style={{
+          position: 'absolute',
+          right: 20,
+          bottom: 72 + insets.bottom,
+          width: 52,
+          height: 52,
+          borderRadius: 26,
+          backgroundColor: '#111111',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="Jitter 열기"
+      >
+        <Feather name="message-circle" size={22} color="#FFFFFF" />
+      </Pressable>
+    </View>
   );
 }

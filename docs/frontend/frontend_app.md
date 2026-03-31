@@ -197,6 +197,7 @@ apps/mobile/
       feed-compose.tsx
       feed-comments.tsx
       profile-edit.tsx
+      jitter.tsx              ← Jitter 채팅 모달 (플로팅 버튼 → 이 화면)
   src/
     api/
       client.ts               ← 단일 HTTP 클라이언트, Bearer token 자동 주입
@@ -208,6 +209,7 @@ apps/mobile/
       highlight.ts
       quiz.ts
       profile.ts
+      jitter.ts               ← postJitterMessage (cloud fallback API 클라이언트)
     components/
       ui/
         AppText.tsx
@@ -277,6 +279,20 @@ apps/mobile/
         mutations.ts
         types.ts
         screens/
+      jitter/
+        store.ts              ← OnDeviceStatus Zustand store (idle/downloading/ready/failed)
+        JitterBootstrap.tsx   ← 앱 시작 시 모델 자동 복구 null 컴포넌트
+        hooks/
+          useJitterBootstrap.ts   ← 앱 시작 시 isModelDownloaded() → setReady()
+          useJitterAppState.ts    ← AppState 감지, 백그라운드 시 모델 메모리 해제
+          useJitterChat.ts        ← 하이브리드 훅 (on-device ready → llama.rn, 그 외 cloud)
+        services/
+          modelDownload.ts        ← Web stub (isModelDownloaded: false, download: throw)
+          modelDownload.native.ts ← expo-file-system/legacy CDN 다운로드, 진행률 콜백
+          onDeviceLLM.ts          ← Web stub (loadModel/onDeviceChat: throw)
+          onDeviceLLM.native.ts   ← llama.rn 싱글턴 컨텍스트, Qwen3-1.7B Q4_K_M 채팅
+        screens/
+          JitterChatScreen.tsx
     hooks/
       useAuthSession.ts
       usePressScale.ts
@@ -298,7 +314,7 @@ apps/mobile/
       queryKeys.ts
       routes.ts
     providers/
-      AppProviders.tsx
+      AppProviders.tsx        ← JitterBootstrap 마운트 포함 (앱 진입 시 모델 복구)
   assets/
     images/
     icons/
@@ -975,14 +991,39 @@ MVP에서 최소 시나리오만 구성:
 - feed compose / comments modal
 - profile-edit modal (displayName, avatar 업로드)
 
-## Phase 6 — Feed Text Wave (현재 스프린트) 🔄 진행 중
+## Phase 6 — Feed Text Wave ✅ 완료
 - **FeedHomeScreen 완전 재작성** — 기존 소셜 포스트 피드 → Text Wave
 - **TextMarquee 컴포넌트 신규 구현** — 3개 패럴랙스 레이어, pause/resume 인터랙션
 - **`GET /v1/feed/wave` 백엔드 구현** — 24h TTL, random, max 50
 - `src/api/feed.ts` + `src/features/feed/queries.ts` 업데이트
 - highlight-viewer modal 연결 (텍스트 클릭 시 하이라이트 이미지 오픈)
 
-## Phase 7 — Polish (다음 단계)
+## Phase 7 — Jitter On-Device AI ✅ 완료 (2026-03-31)
+
+### Phase 0 (클라우드 기반) ✅
+- `POST /v1/jitter/messages` 백엔드 (Gemini API 경유)
+- `src/api/jitter.ts` + `src/features/jitter/screens/JitterChatScreen.tsx`
+- `(tabs)/_layout.tsx` 우측 하단 플로팅 버튼 → `(modals)/jitter.tsx`
+
+### Phase 1 Init (온디바이스 하이브리드) ✅
+- `llama.rn` v0.11.4 설치 (New Architecture 전용, Expo SDK 55 호환)
+- `expo-file-system`, `expo-build-properties` 설치
+- `app.json` plugin: `llama.rn` (forceCxx20, iOS Metal), deploymentTarget 16.0
+- `src/features/jitter/store.ts` — OnDeviceStatus Zustand store
+- `src/features/jitter/services/modelDownload.native.ts` — CDN 다운로드 (~1.1GB), 진행률 콜백
+- `src/features/jitter/services/onDeviceLLM.native.ts` — llama.rn 싱글턴, Qwen3-1.7B Q4_K_M
+- `src/features/jitter/hooks/useJitterChat.ts` — 하이브리드: ready → on-device, 그 외 → cloud
+- `src/features/jitter/hooks/useJitterBootstrap.ts` — 앱 시작 시 기존 모델 자동 복구
+- `src/features/jitter/hooks/useJitterAppState.ts` — 백그라운드 시 메모리 해제
+- `src/features/jitter/JitterBootstrap.tsx` — AppProviders에 마운트
+- Web stub 파일 분리 (`modelDownload.ts`, `onDeviceLLM.ts`) — 웹 번들 크래시 방지
+
+### 플랫폼 분기 규칙
+- Metro 번들러: `.native.ts` → iOS/Android, `.ts` → Web
+- llama.rn / expo-file-system/legacy 는 native 파일에서만 import
+- 웹에서는 항상 cloud fallback으로 동작
+
+## Phase 8 — Polish (다음 단계)
 - loading/empty/error 상태 정리 (일부 화면 누락)
 - Onboarding 구현 (현재 빈 파일, 탭 진입 차단 로직 없음)
 - Rank 연결 (RankBadge 컴포넌트 미구현, 랭크 데이터 미연결)

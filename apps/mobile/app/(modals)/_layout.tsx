@@ -13,6 +13,7 @@ export default function ModalsLayout() {
       <Stack.Screen name="quiz-loading" />
       <Stack.Screen name="quiz-answer" />
       <Stack.Screen name="quiz-result" />
+      <Stack.Screen name="jitter" />
     </Stack>
   );
 }
