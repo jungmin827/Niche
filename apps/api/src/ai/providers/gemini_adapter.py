@@ -7,7 +7,13 @@ import logging
 from google import genai
 from google.genai import types
 
-from src.ai.base import GeneratedQuiz, GradingResult, QuizQuestion, SessionMode
+from src.ai.base import (
+    GeneratedQuiz,
+    GradingResult,
+    JitterChatTurn,
+    QuizQuestion,
+    SessionMode,
+)
 from src.ai.mappers.quiz_mapper import parse_generated_quiz, parse_grading_result
 
 logger = logging.getLogger("niche.ai.gemini")
@@ -48,6 +54,15 @@ _GRADING_SYSTEM = (
     "You are a thoughtful evaluator for NichE, a deep-focus session app.\n"
     "Grade the user's written answers to reflection questions.\n"
     "Respond with valid JSON only. No markdown. No explanation outside the JSON."
+)
+
+_JITTER_SYSTEM = (
+    "You are Jitter, the in-app companion for NichE — a quiet app for deep taste, reading, and reflection.\n"
+    "You are not a generic chatbot. You speak with a calm, editorial tone: precise, restrained, and respectful.\n"
+    "Help the user think about their interests, sessions, reading, and inner life — without productivity jargon,\n"
+    "without hype, and without judging them. Prefer Korean for all replies unless the user writes only in another language.\n"
+    "Keep answers concise. Do not use emojis. Do not claim to have seen private server data; optional local context\n"
+    "may be appended below if the client provides it."
 )
 
 
@@ -175,6 +190,61 @@ class GeminiAdapter:
         if not response.text:
             raise RuntimeError("AI returned an empty response (possible safety filter)")
         return response.text
+
+    async def _call_jitter(
+        self,
+        *,
+        system: str,
+        contents: list[types.Content],
+    ) -> str:
+        config = types.GenerateContentConfig(system_instruction=system)
+        try:
+            response = await asyncio.wait_for(
+                self._client.aio.models.generate_content(
+                    model=self._model_name,
+                    contents=contents,
+                    config=config,
+                ),
+                timeout=self._timeout_seconds,
+            )
+        except asyncio.TimeoutError as exc:
+            raise RuntimeError(
+                f"AI call timed out after {self._timeout_seconds}s"
+            ) from exc
+        except Exception as exc:
+            raise RuntimeError(f"AI call failed: {exc}") from exc
+        if not response.text:
+            raise RuntimeError("AI returned an empty response (possible safety filter)")
+        return response.text
+
+    async def jitter_chat(
+        self,
+        *,
+        messages: list[JitterChatTurn],
+        context_summary: str | None,
+    ) -> str:
+        system = _JITTER_SYSTEM
+        if context_summary and context_summary.strip():
+            system = (
+                f"{_JITTER_SYSTEM}\n\n"
+                "---\n"
+                "Optional context from the user's app (may be incomplete):\n"
+                f"{context_summary.strip()}"
+            )
+
+        contents: list[types.Content] = []
+        for turn in messages:
+            gemini_role = "user" if turn.role == "user" else "model"
+            contents.append(
+                types.Content(
+                    role=gemini_role,
+                    parts=[types.Part(text=turn.content)],
+                )
+            )
+
+        text = await self._call_jitter(system=system, contents=contents)
+        logger.info("event=ai.jitter_chat turns=%s", len(messages))
+        return text
 
     async def generate_quiz(
         self,
