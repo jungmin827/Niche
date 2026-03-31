@@ -29,4 +29,5 @@ export const routes = {
   feedComments: (postId: string) => `/(modals)/feed-comments?postId=${postId}`,
   profileEdit: (displayName: string) =>
     `/(modals)/profile-edit?displayName=${encodeURIComponent(displayName)}`,
+  jitter: '/(modals)/jitter',
 } as const;
