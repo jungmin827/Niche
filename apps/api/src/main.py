@@ -17,6 +17,7 @@ from src.routers import (
     feed,
     health,
     highlights,
+    jitter,
     profiles,
     quizzes,
     session_bundles,
@@ -115,6 +116,7 @@ def create_app() -> FastAPI:
     app.include_router(session_bundles.router)
     app.include_router(blog_posts.router)
     app.include_router(uploads.router)
+    app.include_router(jitter.router)
 
     @app.get("/")
     async def root() -> dict[str, str]:
