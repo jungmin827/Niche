@@ -174,18 +174,42 @@ Jitter가 대화 시 이 데이터를 자동 컨텍스트로 활용.
 
 ## 6. 구현 로드맵
 
-### Phase 0 — 현재 (MVP 완성 전)
+### Phase 0 — ✅ 완료 (2026-03-31)
 
-- 현재 구조 유지: FastAPI + 외부 LLM API
-- Jitter는 클라우드 기반으로 먼저 구현해 UX 검증
-- 온디바이스 전환 없음
+- FastAPI + Gemini API 클라우드 기반 Jitter 구현
+- `POST /v1/jitter/messages` 엔드포인트
+- 프론트: 플로팅 버튼 → `(modals)/jitter.tsx` → `JitterChatScreen`
+- 멀티턴 대화, 턴 순서 검증, cloud fallback 에러 처리
 
-### Phase 1 — MVP 이후 (3–6개월)
+### Phase 1 — ✅ Init 완료 (2026-03-31)
 
-- `llama.rn` + Qwen3-1.7B Q4_K_M 통합
-- "오프라인 AI 활성화" 선택 옵션 (강제 아님)
-- Jitter 기본 대화 기능 (온디바이스)
-- 하이브리드: 온디바이스 다운로드 전이면 클라우드 fallback
+**패키지 & 빌드 설정**
+- `llama.rn` v0.11.4 설치 (New Architecture 전용, RN 0.83.2 호환)
+- `expo-file-system`, `expo-build-properties` 설치
+- `app.json`: llama.rn plugin (forceCxx20, enableOpenCLAndHexagon: false), iOS deploymentTarget 16.0
+- 실기기 빌드 필요: `npx expo run:ios` (Expo Go 미지원)
+
+**온디바이스 인프라**
+- `src/features/jitter/store.ts` — Zustand store (idle/downloading/ready/failed, progress, modelPath)
+- `src/features/jitter/services/modelDownload.native.ts` — CDN 다운로드, 재시작 시 재다운로드 방지
+  - 현재 CDN: HuggingFace 직접 링크 → 배포 전 S3/Cloudflare 교체 필요
+- `src/features/jitter/services/onDeviceLLM.native.ts` — llama.rn 싱글턴, Qwen3-1.7B Q4_K_M
+  - `n_gpu_layers: 99` (Metal GPU 최대 활용), `n_ctx: 2048`, `n_predict: 512`
+
+**하이브리드 아키텍처**
+- `useJitterChat` 훅: `status === 'ready'` → llama.rn, 그 외 → cloud API
+- `useJitterBootstrap`: 앱 시작 시 기존 모델 자동 복구 (`AppProviders`에 마운트)
+- `useJitterAppState`: 백그라운드 진입 시 `releaseModel()`, 복귀 시 재로드
+
+**UX**
+- 빈 채팅 화면에 "Enable offline AI" 배너 (idle 상태만)
+- 다운로드 전 Alert: `~1.1GB / Wi-Fi 권장 / 기기 내 저장` 고지
+- 헤더: `On-device · private` / `Cloud · responses generated remotely` 상태 표시
+- 다운로드 중 progress bar + 진행률 % 표시
+
+**플랫폼 분기**
+- `.native.ts`: iOS/Android 전용 (llama.rn, expo-file-system/legacy)
+- `.ts`: Web stub (no-op / throw) — 웹 번들 크래시 방지
 
 ### Phase 2 — 중기 (6–12개월)
 
