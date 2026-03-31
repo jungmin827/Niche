@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal, Protocol
 
+ChatRole = Literal["user", "assistant"]
+
 # Determined by session.source field at quiz generation time.
 # technical : tech / code / engineering / paper → concept application questions
 # interest  : niche hobby/curiosity (default)  → discovery & insight questions
@@ -39,6 +41,12 @@ class GradingResult:
     question_grades: list[QuizAnswerGrade]
 
 
+@dataclass(frozen=True)
+class JitterChatTurn:
+    role: ChatRole
+    content: str
+
+
 class AIProvider(Protocol):
     async def generate_quiz(
         self,
@@ -61,3 +69,10 @@ class AIProvider(Protocol):
         questions: list[QuizQuestion],
         answers: list[str],  # index 0 = Q1, 1 = Q2, 2 = Q3
     ) -> GradingResult: ...
+
+    async def jitter_chat(
+        self,
+        *,
+        messages: list[JitterChatTurn],
+        context_summary: str | None,
+    ) -> str: ...
