@@ -24,7 +24,7 @@ export default function TopBar({ title, subtitle, leadingLabel, onLeadingPress }
       </View>
       {leadingLabel ? (
         <Pressable
-          className="rounded-full border border-[#D9D9D4] bg-white px-4 py-2"
+          className="rounded-none border border-[#D9D9D4] bg-white px-4 py-2"
           onPress={onLeadingPress ?? (() => router.back())}
         >
           <AppText variant="bodySmall">{leadingLabel}</AppText>
