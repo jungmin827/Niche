@@ -152,6 +152,47 @@ const BUTTON_SPRING = { stiffness: 180, damping: 22, mass: 0.8 };
 
 ---
 
+## 구현 완료 현황 (2026-04-01)
+
+### UI — AppButton · TopBar 스타일 통일
+- `src/components/ui/AppButton.tsx` — `min-h-[58px]`, `py-[17px]`, `rounded-none` (모서리 직각, 높이 확대)
+- `src/components/layout/TopBar.tsx` — leadingLabel 버튼 `rounded-full` → `rounded-none` (AppButton과 통일)
+
+### Session — SessionCompleteScreen Bloom 애니메이션
+- `src/features/session/screens/SessionCompleteScreen.tsx`
+  - Bloom 원: `position: absolute`, 520×520, `borderWidth: 1 / #111111`, 배경 투명
+  - 진입 시 `scale 0.15 → 1` (1200ms) + `opacity 0 → 0.10` (800ms) `Easing.out(Easing.cubic)`
+  - `pointerEvents="none"` — 인터랙션 차단 없음
+
+### Session — withRepeat ReduceMotion 수정
+Reanimated `withRepeat` 시그니처: `(animation, numberOfReps, reverse, callback?, reduceMotion?)`
+
+`ReduceMotion.Never`를 4번째(callback) 자리에 잘못 전달해 `TypeError: callback is not a function` 오류 발생.
+5번째(reduceMotion) 자리로 이동하고 `undefined`를 callback 자리에 명시.
+
+**수정 파일**
+- `src/features/session/screens/SessionActiveScreen.tsx`
+  - ShimmerBlock, PulsingDots(×3), 호흡 원(×6) — 총 10개 호출 수정
+  - 호흡 원 `withSequence` 패턴 → `withRepeat(..., -1, true)` 로 단순화 (Reanimated 웹 호환성)
+  - 초기 opacity 값 상향 (0.02–0.035 → 0.10–0.18) — 웹에서 시각적으로 보이도록
+  - 원 스타일 `backgroundColor: colors.text.primary` → `transparent` + `borderWidth: 1` (링 형태)
+- `src/components/session/SessionStartCard.tsx`
+  - submittingPulse(×1), ambientScale/ambientOpacity(×2) — 총 3개 호출 수정
+
+**올바른 패턴**
+```ts
+// WRONG — ReduceMotion.Never가 callback 자리에 들어가 TypeError 발생
+withRepeat(withTiming(...), -1, true, ReduceMotion.Never)
+
+// CORRECT
+withRepeat(withTiming(...), -1, true, undefined, ReduceMotion.Never)
+```
+
+### Babel — reanimated 플러그인 추가
+- `babel.config.js` — `'react-native-reanimated/plugin'` 추가 (웹 런타임 애니메이션 정상 동작에 필요)
+
+---
+
 ## 모션 시스템 가이드 (이 프로젝트 표준)
 
 새 화면 구현 시 아래 패턴을 재사용한다.
