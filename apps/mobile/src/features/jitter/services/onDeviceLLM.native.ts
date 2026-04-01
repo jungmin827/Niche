@@ -67,7 +67,7 @@ export async function onDeviceChat(
     },
   );
 
-  const reply = result.text.trim();
+  const reply = (result.content || result.text).trim();
   if (!reply) {
     throw new Error('On-device model returned an empty response.');
   }
