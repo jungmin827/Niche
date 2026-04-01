@@ -1,6 +1,12 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppButton from '../../../components/ui/AppButton';
 import AppText from '../../../components/ui/AppText';
@@ -94,8 +100,23 @@ export default function SessionCompleteScreen() {
 
   const isBusy = noteMutation.isPending || bundleMutation.isPending;
 
+  // ── Bloom — expands from center on screen enter ──────────────────────────
+  const bloomScale = useSharedValue(0.15);
+  const bloomOpacity = useSharedValue(0);
+  useEffect(() => {
+    bloomScale.value = withTiming(1, { duration: 1200, easing: Easing.out(Easing.cubic) });
+    bloomOpacity.value = withTiming(0.10, { duration: 800, easing: Easing.out(Easing.cubic) });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const bloomStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: bloomScale.value }],
+    opacity: bloomOpacity.value,
+  }));
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top', 'bottom']}>
+      {/* Bloom — behind all content */}
+      <Animated.View style={[styles.bloom, bloomStyle]} pointerEvents="none" />
       <ScrollView
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -213,3 +234,17 @@ export default function SessionCompleteScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  bloom: {
+    position: 'absolute',
+    width: 520,
+    height: 520,
+    borderRadius: 260,
+    alignSelf: 'center',
+    top: '12%',
+    borderWidth: 1,
+    borderColor: '#111111',
+    backgroundColor: 'transparent',
+  },
+});
