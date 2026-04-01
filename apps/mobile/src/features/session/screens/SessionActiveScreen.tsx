@@ -16,6 +16,7 @@ import Animated, {
   FadeIn,
   FadeInDown,
   FadeOut,
+  ReduceMotion,
   ZoomIn,
   runOnJS,
   useAnimatedProps,
@@ -78,7 +79,7 @@ function ShimmerBlock({ height = 16, width = '100%', borderRadius = 3 }: {
     sweepX.value = -180;
     sweepX.value = withRepeat(
       withTiming(380, { duration: 1300, easing: Easing.linear }),
-      -1, false,
+      -1, false, undefined, ReduceMotion.Never,
     );
   }, [sweepX]);
 
@@ -112,9 +113,9 @@ function PulsingDots() {
   );
 
   useEffect(() => {
-    d1.value = withRepeat(pulseAnim, -1, false);
-    d2.value = withDelay(300, withRepeat(pulseAnim, -1, false));
-    d3.value = withDelay(600, withRepeat(pulseAnim, -1, false));
+    d1.value = withRepeat(pulseAnim, -1, false, undefined, ReduceMotion.Never);
+    d2.value = withDelay(300, withRepeat(pulseAnim, -1, false, undefined, ReduceMotion.Never));
+    d3.value = withDelay(600, withRepeat(pulseAnim, -1, false, undefined, ReduceMotion.Never));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -258,11 +259,11 @@ export default function SessionActiveScreen() {
 
   // Breathing circles
   const cAScale = useSharedValue(1);
-  const cAOpacity = useSharedValue(0.035);
+  const cAOpacity = useSharedValue(0.18);
   const cBScale = useSharedValue(1);
-  const cBOpacity = useSharedValue(0.025);
+  const cBOpacity = useSharedValue(0.12);
   const cCScale = useSharedValue(1);
-  const cCOpacity = useSharedValue(0.02);
+  const cCOpacity = useSharedValue(0.10);
 
   // ── Animated Styles ───────────────────────────────────────────────────────
   const timerScaleStyle = useAnimatedStyle(() => ({
@@ -303,48 +304,16 @@ export default function SessionActiveScreen() {
   // ── Effects ───────────────────────────────────────────────────────────────
 
   // Breathing circles — start once on mount
+  // withRepeat(..., -1, true) reverses direction each cycle → no withSequence needed.
+  // This pattern is reliably supported by Reanimated on both native and web.
   useEffect(() => {
-    const sinEasing = Easing.inOut(Easing.sin);
-    cAScale.value = withRepeat(
-      withSequence(
-        withTiming(1.12, { duration: 10000, easing: sinEasing }),
-        withTiming(1.0, { duration: 10000, easing: sinEasing }),
-      ), -1, false,
-    );
-    cAOpacity.value = withRepeat(
-      withSequence(
-        withTiming(0.055, { duration: 10000, easing: sinEasing }),
-        withTiming(0.035, { duration: 10000, easing: sinEasing }),
-      ), -1, false,
-    );
-    cBScale.value = withRepeat(
-      withSequence(
-        withTiming(1.0, { duration: 4000, easing: sinEasing }),
-        withTiming(1.08, { duration: 8000, easing: sinEasing }),
-        withTiming(1.0, { duration: 8000, easing: sinEasing }),
-      ), -1, false,
-    );
-    cBOpacity.value = withRepeat(
-      withSequence(
-        withTiming(0.025, { duration: 4000, easing: sinEasing }),
-        withTiming(0.045, { duration: 8000, easing: sinEasing }),
-        withTiming(0.025, { duration: 8000, easing: sinEasing }),
-      ), -1, false,
-    );
-    cCScale.value = withRepeat(
-      withSequence(
-        withTiming(1.0, { duration: 6000, easing: sinEasing }),
-        withTiming(1.15, { duration: 12000, easing: sinEasing }),
-        withTiming(1.0, { duration: 12000, easing: sinEasing }),
-      ), -1, false,
-    );
-    cCOpacity.value = withRepeat(
-      withSequence(
-        withTiming(0.02, { duration: 6000, easing: sinEasing }),
-        withTiming(0.04, { duration: 12000, easing: sinEasing }),
-        withTiming(0.02, { duration: 12000, easing: sinEasing }),
-      ), -1, false,
-    );
+    const ease = Easing.inOut(Easing.quad);
+    cAScale.value = withRepeat(withTiming(1.12, { duration: 10000, easing: ease }), -1, true, undefined, ReduceMotion.Never);
+    cAOpacity.value = withRepeat(withTiming(0.28, { duration: 10000, easing: ease }), -1, true, undefined, ReduceMotion.Never);
+    cBScale.value = withRepeat(withTiming(1.08, { duration: 8000, easing: ease }), -1, true, undefined, ReduceMotion.Never);
+    cBOpacity.value = withRepeat(withTiming(0.22, { duration: 8000, easing: ease }), -1, true, undefined, ReduceMotion.Never);
+    cCScale.value = withRepeat(withTiming(1.15, { duration: 12000, easing: ease }), -1, true, undefined, ReduceMotion.Never);
+    cCOpacity.value = withRepeat(withTiming(0.20, { duration: 12000, easing: ease }), -1, true, undefined, ReduceMotion.Never);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -911,7 +880,9 @@ const styles = StyleSheet.create({
   circle: {
     position: 'absolute',
     borderRadius: 9999,
-    backgroundColor: colors.text.primary,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: colors.text.primary,
   },
   circleA: { width: 320, height: 320, top: '15%', left: '-20%' },
   circleB: { width: 240, height: 240, bottom: '18%', right: '-10%' },
