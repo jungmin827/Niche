@@ -184,10 +184,12 @@ Jitter가 대화 시 이 데이터를 자동 컨텍스트로 활용.
 ### Phase 1 — ✅ Init 완료 (2026-03-31)
 
 **패키지 & 빌드 설정**
-- `llama.rn` v0.11.4 설치 (New Architecture 전용, RN 0.83.2 호환)
+- `llama.rn` v0.12.0-rc.2 설치 (New Architecture 전용, RN 0.83.2 호환)
 - `expo-file-system`, `expo-build-properties` 설치
 - `app.json`: llama.rn plugin (forceCxx20, enableOpenCLAndHexagon: false), iOS deploymentTarget 16.0
-- 실기기 빌드 필요: `npx expo run:ios` (Expo Go 미지원)
+- 실기기 빌드 필요: Expo Go 미지원
+  - iOS: `npx expo run:ios` (macOS 12+, Xcode 14+ 필요) 또는 `eas build --profile development` (유료)
+  - Android: `npx expo run:android --device` (무료, macOS 버전 무관) → `docs/ai/android_dev_testing.md` 참고
 
 **온디바이스 인프라**
 - `src/features/jitter/store.ts` — Zustand store (idle/downloading/ready/failed, progress, modelPath)
@@ -210,6 +212,13 @@ Jitter가 대화 시 이 데이터를 자동 컨텍스트로 활용.
 **플랫폼 분기**
 - `.native.ts`: iOS/Android 전용 (llama.rn, expo-file-system/legacy)
 - `.ts`: Web stub (no-op / throw) — 웹 번들 크래시 방지
+
+**알려진 미구현 사항 (Phase 1 완료 전 수정 필요)**
+- `onDeviceLLM.native.ts`: `result.text` 사용 중 → Qwen3 thinking 태그 포함 가능, `result.content`로 교체 필요
+- `useJitterAppState.ts`: 백그라운드 복귀 시 모델 재로드 실패를 무시 → store 상태 불일치 발생 가능, `setFailed()` 처리 필요
+- `JitterChatScreen.tsx`: `send(text)` 호출 시 contextSummary 미전달 (Phase 2 연동 전까지 의도적 미구현)
+- `modelDownload.native.ts`: CDN URL HuggingFace 직링크 → 배포 전 S3/Cloudflare 교체 필요
+- 스트리밍 응답 미구현 → 긴 응답 시 UX 저하 (추후 개선)
 
 ### Phase 2 — 중기 (6–12개월)
 
