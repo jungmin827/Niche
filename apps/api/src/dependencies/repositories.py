@@ -95,18 +95,31 @@ def _get_postgres_blog_post_repository(
     return PostgresBlogPostRepository(get_async_session_factory(settings))
 
 
+@lru_cache
+def _get_postgres_session_bundle_repository(
+    database_url: str,
+) -> PostgresSessionBundleRepository:
+    settings = Settings(
+        database_url=database_url, session_repository_backend="postgres"
+    )
+    return PostgresSessionBundleRepository(get_async_session_factory(settings))
+
+
+def _warn_no_db(repository: str) -> None:
+    logger.warning(
+        "repository=%s backend=postgres requested but NICHE_DATABASE_URL not set"
+        " — falling back to memory (set NICHE_DATABASE_URL for persistence)",
+        repository,
+    )
+
+
 def get_session_repository(
     settings: Settings = Depends(get_settings),
 ) -> SessionRepository:
     if settings.session_repository_backend == "postgres":
         if not settings.database_url:
-            raise ServiceUnavailableAppError(
-                "Persistence backend is unavailable.",
-                details={
-                    "backend": "postgres",
-                    "reason": "NICHE_DATABASE_URL is not configured.",
-                },
-            )
+            _warn_no_db("session")
+            return _memory_session_repository
         try:
             repository = _get_postgres_session_repository(settings.database_url)
         except Exception as exc:
@@ -125,13 +138,8 @@ def get_highlight_repository(
 ) -> HighlightRepository:
     if settings.session_repository_backend == "postgres":
         if not settings.database_url:
-            raise ServiceUnavailableAppError(
-                "Persistence backend is unavailable.",
-                details={
-                    "backend": "postgres",
-                    "reason": "NICHE_DATABASE_URL is not configured.",
-                },
-            )
+            _warn_no_db("highlight")
+            return _memory_highlight_repository
         try:
             repository = _get_postgres_highlight_repository(settings.database_url)
         except Exception as exc:
@@ -148,13 +156,8 @@ def get_highlight_repository(
 def get_quiz_repository(settings: Settings = Depends(get_settings)) -> QuizRepository:
     if settings.session_repository_backend == "postgres":
         if not settings.database_url:
-            raise ServiceUnavailableAppError(
-                "Persistence backend is unavailable.",
-                details={
-                    "backend": "postgres",
-                    "reason": "NICHE_DATABASE_URL is not configured.",
-                },
-            )
+            _warn_no_db("quiz")
+            return _memory_quiz_repository
         try:
             repository = _get_postgres_quiz_repository(settings.database_url)
         except Exception as exc:
@@ -186,13 +189,8 @@ def get_blog_post_repo(
 ) -> BlogPostRepository:
     if settings.session_repository_backend == "postgres":
         if not settings.database_url:
-            raise ServiceUnavailableAppError(
-                "Persistence backend is unavailable.",
-                details={
-                    "backend": "postgres",
-                    "reason": "NICHE_DATABASE_URL is not configured.",
-                },
-            )
+            _warn_no_db("blog_post")
+            return _memory_blog_post_repository
         try:
             return _get_postgres_blog_post_repository(settings.database_url)
         except Exception as exc:
@@ -210,28 +208,13 @@ def get_blog_post_service(
     return BlogPostService(repo=repo, settings=settings)
 
 
-@lru_cache
-def _get_postgres_session_bundle_repository(
-    database_url: str,
-) -> PostgresSessionBundleRepository:
-    settings = Settings(
-        database_url=database_url, session_repository_backend="postgres"
-    )
-    return PostgresSessionBundleRepository(get_async_session_factory(settings))
-
-
 def get_session_bundle_repository(
     settings: Settings = Depends(get_settings),
 ) -> SessionBundleRepository:
     if settings.session_repository_backend == "postgres":
         if not settings.database_url:
-            raise ServiceUnavailableAppError(
-                "Persistence backend is unavailable.",
-                details={
-                    "backend": "postgres",
-                    "reason": "NICHE_DATABASE_URL is not configured.",
-                },
-            )
+            _warn_no_db("session_bundle")
+            return _memory_session_bundle_repository
         try:
             return _get_postgres_session_bundle_repository(settings.database_url)
         except Exception as exc:
@@ -247,13 +230,8 @@ def get_profile_repo(
 ) -> ProfileRepository:
     if settings.session_repository_backend == "postgres":
         if not settings.database_url:
-            raise ServiceUnavailableAppError(
-                "Persistence backend is unavailable.",
-                details={
-                    "backend": "postgres",
-                    "reason": "NICHE_DATABASE_URL is not configured.",
-                },
-            )
+            _warn_no_db("profile")
+            return _memory_profile_repository
         try:
             return _get_postgres_profile_repository(settings.database_url)
         except Exception as exc:
