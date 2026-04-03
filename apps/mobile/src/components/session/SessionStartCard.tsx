@@ -14,6 +14,7 @@ import Animated, {
   FadeInDown,
   interpolate,
   interpolateColor,
+  ReduceMotion,
   runOnJS,
   useAnimatedStyle,
   useDerivedValue,
@@ -174,6 +175,8 @@ export default function SessionStartCard({
         withTiming(0.3, { duration: 560, easing: ENTER_EASING }),
         -1,
         true,
+        undefined,
+        ReduceMotion.Never,
       );
     } else {
       cancelAnimation(submittingPulse);
@@ -273,10 +276,26 @@ export default function SessionStartCard({
 
   const hintText = hasActiveSession ? 'Resume session' : 'Ready to begin?';
 
+  // ── Ambient glow — single white circle breathing from bottom-center ──────
+  const ambientScale = useSharedValue(1);
+  const ambientOpacity = useSharedValue(0.04);
+  useEffect(() => {
+    const ease = Easing.inOut(Easing.quad);
+    ambientScale.value = withRepeat(withTiming(1.18, { duration: 16000, easing: ease }), -1, true, undefined, ReduceMotion.Never);
+    ambientOpacity.value = withRepeat(withTiming(0.09, { duration: 16000, easing: ease }), -1, true, undefined, ReduceMotion.Never);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const ambientStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: ambientScale.value }],
+    opacity: ambientOpacity.value,
+  }));
+
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
+        {/* Ambient glow — bottom-center, behind all content */}
+        <Animated.View style={[styles.ambientCircle, ambientStyle]} pointerEvents="none" />
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -411,6 +430,17 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.dark.bg,
+  },
+  ambientCircle: {
+    position: 'absolute',
+    width: 480,
+    height: 480,
+    borderRadius: 240,
+    bottom: '-20%',
+    alignSelf: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'transparent',
   },
 
   // ── Stats ────────────────────────────────────────────────────────────────

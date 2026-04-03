@@ -30,7 +30,7 @@ export default function AppButton({
   return (
     <Pressable
       accessibilityRole="button"
-      className={`min-h-[52px] rounded-[4px] px-5 py-[14px] ${variantClassMap[variant]} ${
+      className={`min-h-[58px] rounded-none px-5 py-[17px] ${variantClassMap[variant]} ${
         fullWidth ? 'w-full' : ''
       } ${disabled ? 'opacity-50' : ''} ${className}`}
       disabled={disabled}
