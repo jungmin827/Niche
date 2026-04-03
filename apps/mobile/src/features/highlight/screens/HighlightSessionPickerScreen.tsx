@@ -37,8 +37,8 @@ export default function HighlightSessionPickerScreen() {
       // 이미 하이라이트가 있는 세션 → 뷰어로 이동
       router.replace(routes.highlightViewer(existingHighlightId));
     } else {
-      // 하이라이트가 없는 세션 → SharePreviewScreen으로 이동 (세션 완료 흐름과 동일)
-      router.push(routes.sharePreviewModal({ sessionId: item.id }));
+      // 하이라이트가 없는 세션 → 템플릿/메타 확인 후 SharePreview
+      router.push(routes.highlightCreate(item.id));
     }
   }
 
