@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     app_name: str = "NichE API"
     environment: Literal["local", "development", "staging", "production"] = "local"
     api_version: str = "v1"
-    session_repository_backend: Literal["memory", "postgres"] = "memory"
+    session_repository_backend: Literal["memory", "postgres"] = "postgres"
     database_url: str | None = None
     supabase_url: str | None = None  # https://<project-ref>.supabase.co
     supabase_jwt_secret: str | None = None

@@ -69,9 +69,14 @@ class ValidationAppError(AppError):
 
 
 class ServiceUnavailableAppError(AppError):
-    def __init__(self, message: str, details: dict | None = None) -> None:
+    def __init__(
+        self,
+        message: str,
+        details: dict | None = None,
+        code: str | None = None,
+    ) -> None:
         super().__init__(
-            code=error_codes.INTERNAL_ERROR,
+            code=code or error_codes.INTERNAL_ERROR,
             message=message,
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             details=details,

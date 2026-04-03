@@ -29,6 +29,13 @@ class ProfileRepository(Protocol):
 
     async def get_by_handle(self, handle: str) -> ProfileRecord | None: ...
 
+    async def get_by_auth_user_id(self, auth_user_id: str) -> ProfileRecord | None:
+        """auth_user_id로 프로필을 조회한다.
+        현재는 profile.id == auth_user_id이므로 get_by_id와 동일하게 동작하지만,
+        나중에 id를 분리할 때 이 메서드만 수정하면 된다.
+        """
+        ...
+
     async def get_or_create(self, profile_id: str) -> ProfileRecord: ...
 
     async def update(self, profile_id: str, **fields: object) -> ProfileRecord: ...
@@ -56,17 +63,22 @@ class PostgresProfileRepository:
             row = (await db.execute(statement)).scalar_one_or_none()
             return self._to_record(row) if row else None
 
-    async def get_or_create(self, profile_id: str) -> ProfileRecord:
-        # profile_id == auth_user_id (security.py 계약)
+    async def get_by_auth_user_id(self, auth_user_id: str) -> ProfileRecord | None:
         statement = select(ProfileTable).where(
-            ProfileTable.auth_user_id == profile_id,
+            ProfileTable.auth_user_id == auth_user_id,
             ProfileTable.deleted_at.is_(None),
         )
         async with self._session_factory() as db:
             row = (await db.execute(statement)).scalar_one_or_none()
-            if row:
-                return self._to_record(row)
+            return self._to_record(row) if row else None
 
+    async def get_or_create(self, profile_id: str) -> ProfileRecord:
+        # profile_id == auth_user_id (security.py 계약. 분리 시 get_by_auth_user_id 호출로 대체)
+        existing = await self.get_by_auth_user_id(profile_id)
+        if existing:
+            return existing
+
+        async with self._session_factory() as db:
             now = datetime.now(timezone.utc)
             new_profile = ProfileTable(
                 id=profile_id,
@@ -138,6 +150,10 @@ class InMemoryProfileRepository:
             if record.handle == handle:
                 return record
         return None
+
+    async def get_by_auth_user_id(self, auth_user_id: str) -> ProfileRecord | None:
+        # InMemory에서는 id == auth_user_id
+        return self._profiles.get(auth_user_id)
 
     async def get_or_create(self, profile_id: str) -> ProfileRecord:
         if profile_id not in self._profiles:

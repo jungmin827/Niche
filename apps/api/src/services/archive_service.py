@@ -5,6 +5,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from src.config import Settings
 from src.exceptions import ValidationAppError
+from src.services.blog_post_service import extract_first_md_image_url
 from src.repositories.blog_post_repo import BlogPostRepository
 from src.repositories.highlight_repo import HighlightRepository
 from src.repositories.profile_repo import ProfileRepository
@@ -16,6 +17,7 @@ from src.schemas.archive import (
     ArchiveProfileDTO,
     ArchiveStatsDTO,
     MyArchiveResponse,
+    UserArchiveResponse,
 )
 from src.middleware.request_id import get_request_id
 from src.security import AuthenticatedUser
@@ -109,7 +111,7 @@ class ArchiveService:
                 cover_image_url=(
                     f"{self._settings.storage_public_base_url}/{post.cover_image_path}"
                     if post.cover_image_path
-                    else None
+                    else extract_first_md_image_url(post.body_md)
                 ),
                 visibility=post.visibility,
                 published_at=post.published_at.isoformat()
@@ -156,6 +158,113 @@ class ArchiveService:
             response.stats.current_streak_days,
         )
         return response
+
+    async def get_user_archive(
+        self,
+        *,
+        profile_id: str,
+        blog_cursor: str | None,
+        highlight_cursor: str | None,
+        blog_limit: int,
+        highlight_limit: int,
+    ) -> UserArchiveResponse | None:
+        """타 사용자 공개 아카이브 조회. profile이 비공개이면 None 반환."""
+        record = await self._profile_repository.get_by_id(profile_id)
+        if record is None or not record.is_public:
+            return None
+
+        del blog_cursor  # TODO: cursor pagination when BlogPostRepository supports it
+
+        bounded_highlight_limit = min(
+            highlight_limit, self._settings.highlight_list_max_limit
+        )
+        try:
+            (
+                items,
+                next_cursor,
+                has_next,
+            ) = await self._highlight_repository.list_highlights(
+                profile_id=profile_id,
+                visibility="public",
+                cursor=highlight_cursor,
+                limit=bounded_highlight_limit,
+            )
+        except ValueError as exc:
+            raise ValidationAppError(
+                "Request validation failed.",
+                details={"highlightCursor": str(exc)},
+            ) from exc
+
+        (
+            total_highlights,
+            total_sessions,
+            total_minutes,
+            completed_dates,
+        ) = await _gather_stats(
+            highlight_repository=self._highlight_repository,
+            session_repository=self._session_repository,
+            profile_id=profile_id,
+        )
+
+        blog_posts = await self._blog_post_repository.list_public_by_author(profile_id)
+        blog_post_items = [
+            ArchiveBlogPostItemDTO(
+                id=post.id,
+                title=post.title,
+                excerpt=post.excerpt,
+                cover_image_url=(
+                    f"{self._settings.storage_public_base_url}/{post.cover_image_path}"
+                    if post.cover_image_path
+                    else extract_first_md_image_url(post.body_md)
+                ),
+                visibility=post.visibility,
+                published_at=post.published_at.isoformat()
+                if post.published_at
+                else None,
+            )
+            for post in blog_posts
+        ]
+        blog_page = blog_post_items[:blog_limit] if blog_limit else blog_post_items
+        blog_has_next = len(blog_post_items) > blog_limit if blog_limit else False
+
+        highlight_items = [
+            build_highlight_summary(highlight=item, settings=self._settings)
+            for item in items
+        ]
+
+        profile_dto = ArchiveProfileDTO(
+            id=record.id,
+            handle=record.handle,
+            displayName=record.display_name,
+            bio=record.bio,
+            avatarUrl=(
+                f"{self._settings.storage_public_base_url}/{record.avatar_path}"
+                if record.avatar_path
+                else None
+            ),
+            currentRankCode=record.current_rank_code,
+            rankScore=record.rank_score,
+            isPublic=record.is_public,
+        )
+
+        return UserArchiveResponse(
+            profile=profile_dto,
+            stats=ArchiveStatsDTO(
+                totalSessions=total_sessions,
+                totalFocusMinutes=total_minutes,
+                totalBlogPosts=len(blog_post_items),
+                totalHighlights=total_highlights,
+                currentStreakDays=_compute_streak(completed_dates),
+            ),
+            blogPosts=ArchiveBlogPostsResponse(
+                items=blog_page, nextCursor=None, hasNext=blog_has_next
+            ),
+            highlights=ArchiveHighlightsResponse(
+                items=highlight_items,
+                nextCursor=next_cursor,
+                hasNext=has_next,
+            ),
+        )
 
     async def _get_profile(self, profile_id: str) -> ArchiveProfileDTO:
         record = await self._profile_repository.get_or_create(profile_id)

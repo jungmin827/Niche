@@ -36,7 +36,7 @@ def _to_response(record: BlogPostRecord, service: BlogPostService) -> BlogPostRe
         title=record.title,
         excerpt=record.excerpt,
         body_md=record.body_md,
-        cover_image_url=service._resolve_cover_url(record.cover_image_path),
+        cover_image_url=service._resolve_cover_url(record.cover_image_path, record.body_md),
         visibility=record.visibility,
         published_at=record.published_at,
         created_at=record.created_at,
@@ -55,7 +55,7 @@ async def list_public_blog_posts(
             author_id=r.author_id,
             title=r.title,
             excerpt=r.excerpt,
-            cover_image_url=service._resolve_cover_url(r.cover_image_path),
+            cover_image_url=service._resolve_cover_url(r.cover_image_path, r.body_md),
             visibility=r.visibility,
             published_at=r.published_at,
         )
@@ -140,7 +140,7 @@ async def list_my_blog_posts(
             author_id=r.author_id,
             title=r.title,
             excerpt=r.excerpt,
-            cover_image_url=service._resolve_cover_url(r.cover_image_path),
+            cover_image_url=service._resolve_cover_url(r.cover_image_path, r.body_md),
             visibility=r.visibility,
             published_at=r.published_at,
         )

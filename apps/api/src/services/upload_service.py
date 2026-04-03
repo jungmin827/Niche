@@ -5,7 +5,9 @@ import uuid
 
 import httpx
 
+from src import error_codes
 from src.config import Settings
+from src.exceptions import ServiceUnavailableAppError
 from src.schemas.upload import ALLOWED_SCOPES, PresignResponse
 
 logger = logging.getLogger("niche.upload")
@@ -54,16 +56,49 @@ class UploadService:
     ) -> str:
         # path already includes bucket prefix (e.g. "content/highlight/...")
         # Supabase signed upload endpoint uses the object path without the bucket prefix.
-        # Strip the leading bucket segment from path.
         object_path = path.removeprefix(f"{bucket}/")
         url = f"{self._settings.supabase_url}/storage/v1/object/upload/sign/{bucket}/{object_path}"
         headers = {
             "Authorization": f"Bearer {self._settings.supabase_service_role_key}",
             "Content-Type": "application/json",
         }
-        async with httpx.AsyncClient(timeout=10) as client:
-            response = await client.post(url, headers=headers, json={})
-            response.raise_for_status()
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                response = await client.post(url, headers=headers, json={})
+                response.raise_for_status()
+        except httpx.TimeoutException:
+            logger.error(
+                "event=storage.presign.timeout bucket=%s path=%s", bucket, path
+            )
+            raise ServiceUnavailableAppError(
+                "Storage service timed out. Please try again.",
+                code=error_codes.STORAGE_UNAVAILABLE,
+            )
+        except httpx.HTTPStatusError as exc:
+            logger.error(
+                "event=storage.presign.http_error bucket=%s path=%s status=%s body=%s",
+                bucket,
+                path,
+                exc.response.status_code,
+                exc.response.text,
+            )
+            raise ServiceUnavailableAppError(
+                "Storage service returned an error. Please try again.",
+                code=error_codes.STORAGE_UNAVAILABLE,
+                details={"storageStatus": exc.response.status_code},
+            )
+        except httpx.RequestError as exc:
+            logger.error(
+                "event=storage.presign.request_error bucket=%s path=%s error=%s",
+                bucket,
+                path,
+                str(exc),
+            )
+            raise ServiceUnavailableAppError(
+                "Storage service is unreachable. Please try again.",
+                code=error_codes.STORAGE_UNAVAILABLE,
+            )
+
         signed_path = response.json()["url"]  # relative: /object/upload/sign/...
         return f"{self._settings.supabase_url}/storage/v1{signed_path}"
 

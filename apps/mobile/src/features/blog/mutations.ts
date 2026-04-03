@@ -9,6 +9,7 @@ export function useCreateBlogPostMutation() {
     mutationFn: createBlogPost,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.blogList });
+      queryClient.invalidateQueries({ queryKey: queryKeys.archiveMe });
     },
   });
 }
@@ -20,6 +21,7 @@ export function useDeleteBlogPostMutation() {
     mutationFn: (postId: string) => deleteBlogPost(postId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.blogList });
+      queryClient.invalidateQueries({ queryKey: queryKeys.archiveMe });
     },
   });
 }

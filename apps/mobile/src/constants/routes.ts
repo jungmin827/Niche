@@ -23,6 +23,8 @@ export const routes = {
   quizAnswer: '/(modals)/quiz-answer',
   quizResult: '/(modals)/quiz-result',
   highlightSessionPicker: '/(modals)/highlight-session-picker' as const,
+  highlightCreate: (sessionId: string) =>
+    ({ pathname: '/(modals)/highlight-create' as const, params: { sessionId } }),
   highlightViewer: (highlightId: string) =>
     ({ pathname: '/(modals)/highlight-viewer' as const, params: { highlightId } }),
   feedCompose: '/(modals)/feed-compose',

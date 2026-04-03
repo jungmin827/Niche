@@ -45,3 +45,10 @@ class MyArchiveResponse(CamelModel):
     stats: ArchiveStatsDTO
     blog_posts: ArchiveBlogPostsResponse
     highlights: ArchiveHighlightsResponse
+
+
+class UserArchiveResponse(CamelModel):
+    profile: ArchiveProfileDTO
+    stats: ArchiveStatsDTO
+    blog_posts: ArchiveBlogPostsResponse
+    highlights: ArchiveHighlightsResponse
