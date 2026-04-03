@@ -36,6 +36,8 @@ class BlogPostRepository(Protocol):
 
     async def list_by_author(self, author_id: str) -> list[BlogPostRecord]: ...
 
+    async def list_public_by_author(self, author_id: str) -> list[BlogPostRecord]: ...
+
     async def list_all_public(self, limit: int = 50) -> list[BlogPostRecord]: ...
 
     async def update(self, post_id: str, **fields) -> BlogPostRecord | None: ...
@@ -80,6 +82,20 @@ class PostgresBlogPostRepository:
             select(BlogPostTable)
             .where(
                 BlogPostTable.profile_id == author_id,
+                BlogPostTable.deleted_at.is_(None),
+            )
+            .order_by(BlogPostTable.published_at.desc())
+        )
+        async with self._session_factory() as db:
+            rows = (await db.execute(statement)).scalars().all()
+            return [self._to_record(r) for r in rows]
+
+    async def list_public_by_author(self, author_id: str) -> list[BlogPostRecord]:
+        statement = (
+            select(BlogPostTable)
+            .where(
+                BlogPostTable.profile_id == author_id,
+                BlogPostTable.visibility == VisibilityDBEnum.PUBLIC,
                 BlogPostTable.deleted_at.is_(None),
             )
             .order_by(BlogPostTable.published_at.desc())
@@ -170,6 +186,17 @@ class InMemoryBlogPostRepository:
             for r in self._posts.values()
             if r.author_id == author_id and r.deleted_at is None
         ]
+
+    async def list_public_by_author(self, author_id: str) -> list[BlogPostRecord]:
+        results = [
+            r
+            for r in self._posts.values()
+            if r.author_id == author_id
+            and r.visibility == "public"
+            and r.deleted_at is None
+        ]
+        results.sort(key=lambda r: r.published_at, reverse=True)
+        return results
 
     async def update(self, post_id: str, **fields) -> BlogPostRecord | None:
         record = self._posts.get(post_id)
