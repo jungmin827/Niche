@@ -1,8 +1,18 @@
 from __future__ import annotations
 
+import re
+
 from src.config import Settings
 from src.models.blog_post import BlogPostRecord
 from src.repositories.blog_post_repo import BlogPostRepository
+
+_MD_IMAGE_RE = re.compile(r"!\[.*?\]\((.*?)\)")
+
+
+def extract_first_md_image_url(body_md: str) -> str | None:
+    """body_md에서 첫 번째 마크다운 이미지 URL을 추출한다. 없으면 None."""
+    match = _MD_IMAGE_RE.search(body_md)
+    return match.group(1) if match else None
 
 
 class BlogPostService:
@@ -10,10 +20,14 @@ class BlogPostService:
         self._repo = repo
         self._settings = settings
 
-    def _resolve_cover_url(self, path: str | None) -> str | None:
-        if path is None:
-            return None
-        return f"{self._settings.storage_public_base_url}/{path}"
+    def _resolve_cover_url(
+        self, path: str | None, body_md: str | None = None
+    ) -> str | None:
+        if path:
+            return f"{self._settings.storage_public_base_url}/{path}"
+        if body_md:
+            return extract_first_md_image_url(body_md)
+        return None
 
     async def create(
         self,
