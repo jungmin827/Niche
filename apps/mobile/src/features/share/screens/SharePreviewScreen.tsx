@@ -52,6 +52,7 @@ export default function SharePreviewScreen() {
   const createHighlightMutation = useCreateHighlightMutation();
   const previewRef = useRef<View>(null);
   const [backgroundUri, setBackgroundUri] = useState<string | null>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
 
   const session = detailQuery.data?.session ?? null;
   const note = detailQuery.data?.note ?? null;
@@ -142,7 +143,9 @@ export default function SharePreviewScreen() {
     if (!model) return;
     try {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setIsCapturing(true);
       const renderedImagePath = await captureTemplate(previewRef);
+      setIsCapturing(false);
 
       if (isBundleMode && bundle) {
         const response = await createHighlightMutation.mutateAsync({
@@ -156,7 +159,10 @@ export default function SharePreviewScreen() {
           sourcePhotoPath: backgroundUri,
           visibility: 'public',
         });
-        router.replace(routes.archiveHighlightDetail(response.highlight.id));
+        router.dismissAll();
+        setTimeout(() => {
+          router.push(routes.archiveHighlightDetail(response.highlight.id));
+        }, 50);
       } else if (session) {
         const response = await createHighlightMutation.mutateAsync({
           sourceType: 'session',
@@ -169,14 +175,18 @@ export default function SharePreviewScreen() {
           sourcePhotoPath: backgroundUri,
           visibility: 'public',
         });
-        router.replace(routes.archiveHighlightDetail(response.highlight.id));
+        router.dismissAll();
+        setTimeout(() => {
+          router.push(routes.archiveHighlightDetail(response.highlight.id));
+        }, 50);
       }
     } catch (error) {
+      setIsCapturing(false);
       Alert.alert('Could not save.', toApiError(error).message);
     }
   };
 
-  const archiveDisabled = createHighlightMutation.isPending || !model;
+  const archiveDisabled = isCapturing || createHighlightMutation.isPending || !model;
 
   // ── Button press animations ─────────────────────────────────────────────────
   const back = usePressScale(() => router.back());
@@ -286,7 +296,7 @@ export default function SharePreviewScreen() {
               disabled={archiveDisabled}
             >
               <AppText variant="bodySmall" style={styles.actionLabel}>
-                {createHighlightMutation.isPending ? 'Saving...' : 'Archive'}
+                {isCapturing ? 'Capturing...' : createHighlightMutation.isPending ? 'Saving...' : 'Archive'}
               </AppText>
             </Pressable>
           </View>
