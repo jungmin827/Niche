@@ -6,11 +6,16 @@ from src.config import Settings
 from src.models.blog_post import BlogPostRecord
 from src.repositories.blog_post_repo import BlogPostRepository
 
+# ![alt](url) 형식의 마크다운 이미지 패턴. 모듈 수준에서 컴파일해 재사용.
 _MD_IMAGE_RE = re.compile(r"!\[.*?\]\((.*?)\)")
 
 
 def extract_first_md_image_url(body_md: str) -> str | None:
-    """body_md에서 첫 번째 마크다운 이미지 URL을 추출한다. 없으면 None."""
+    """body_md에서 첫 번째 마크다운 이미지 URL을 추출한다. 없으면 None.
+
+    cover_image_path가 없는 글에서 본문 첫 이미지를 커버로 대체하기 위해 사용.
+    archive_service.py와 blog_posts.py 라우터에서 공통으로 호출된다.
+    """
     match = _MD_IMAGE_RE.search(body_md)
     return match.group(1) if match else None
 
@@ -23,6 +28,13 @@ class BlogPostService:
     def _resolve_cover_url(
         self, path: str | None, body_md: str | None = None
     ) -> str | None:
+        """커버 이미지 URL을 결정한다.
+
+        우선순위:
+        1. cover_image_path가 있으면 Storage 공개 URL로 변환
+        2. 없으면 body_md 첫 번째 이미지 URL을 폴백으로 사용
+        3. 둘 다 없으면 None
+        """
         if path:
             return f"{self._settings.storage_public_base_url}/{path}"
         if body_md:
