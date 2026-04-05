@@ -108,6 +108,12 @@ def _get_postgres_session_bundle_repository(
 
 
 def _warn_no_db(repository: str) -> None:
+    """postgres 백엔드 요청이지만 DATABASE_URL 미설정 시 경고 로그를 남긴다.
+
+    예전에는 ServiceUnavailableAppError(503)를 발생시켰으나,
+    로컬 개발 환경에서 DB 없이도 API를 기동할 수 있도록 인메모리 폴백으로 변경.
+    프로덕션 환경에서는 NICHE_DATABASE_URL이 반드시 설정되어 있어야 한다.
+    """
     logger.warning(
         "repository=%s backend=postgres requested but NICHE_DATABASE_URL not set"
         " — falling back to memory (set NICHE_DATABASE_URL for persistence)",
