@@ -54,8 +54,15 @@ class UploadService:
     async def _create_signed_upload_url(
         self, *, bucket: str, path: str, content_type: str
     ) -> str:
-        # path already includes bucket prefix (e.g. "content/highlight/...")
-        # Supabase signed upload endpoint uses the object path without the bucket prefix.
+        """Supabase Storage에 signed upload URL을 요청한다.
+
+        Supabase signed upload API: POST /storage/v1/object/upload/sign/{bucket}/{object_path}
+        - path는 "content/highlight/..." 처럼 버킷 prefix를 포함하므로, 버킷 segment를 제거해 object_path를 만든다.
+        - 응답의 "url" 필드는 상대 경로(/object/upload/sign/...)이므로 supabase_url + /storage/v1 prefix를 붙여 완성한다.
+        - 에러는 STORAGE_UNAVAILABLE 코드로 503을 반환해 클라이언트가 재시도 여부를 판단할 수 있게 한다.
+        """
+        # path: "content/highlight/{user_id}/{uuid}/rendered.png"
+        # → object_path: "highlight/{user_id}/{uuid}/rendered.png"  (버킷명 제거)
         object_path = path.removeprefix(f"{bucket}/")
         url = f"{self._settings.supabase_url}/storage/v1/object/upload/sign/{bucket}/{object_path}"
         headers = {
@@ -67,6 +74,7 @@ class UploadService:
                 response = await client.post(url, headers=headers, json={})
                 response.raise_for_status()
         except httpx.TimeoutException:
+            # Supabase Storage가 10초 내 응답하지 않은 경우
             logger.error(
                 "event=storage.presign.timeout bucket=%s path=%s", bucket, path
             )
@@ -75,6 +83,7 @@ class UploadService:
                 code=error_codes.STORAGE_UNAVAILABLE,
             )
         except httpx.HTTPStatusError as exc:
+            # Supabase가 4xx/5xx를 반환한 경우 (잘못된 키, 버킷 미존재 등)
             logger.error(
                 "event=storage.presign.http_error bucket=%s path=%s status=%s body=%s",
                 bucket,
@@ -88,6 +97,7 @@ class UploadService:
                 details={"storageStatus": exc.response.status_code},
             )
         except httpx.RequestError as exc:
+            # DNS 실패, 연결 거부 등 네트워크 수준 오류
             logger.error(
                 "event=storage.presign.request_error bucket=%s path=%s error=%s",
                 bucket,
@@ -99,7 +109,7 @@ class UploadService:
                 code=error_codes.STORAGE_UNAVAILABLE,
             )
 
-        signed_path = response.json()["url"]  # relative: /object/upload/sign/...
+        signed_path = response.json()["url"]  # 상대 경로: /object/upload/sign/...
         return f"{self._settings.supabase_url}/storage/v1{signed_path}"
 
     @staticmethod
