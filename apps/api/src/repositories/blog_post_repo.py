@@ -91,6 +91,11 @@ class PostgresBlogPostRepository:
             return [self._to_record(r) for r in rows]
 
     async def list_public_by_author(self, author_id: str) -> list[BlogPostRecord]:
+        """특정 작성자의 공개(public) 글만 반환한다.
+
+        타 사용자 아카이브(GET /archive/users/{profile_id}/archive)에서
+        비공개 글을 노출하지 않기 위해 list_by_author 대신 이 메서드를 사용한다.
+        """
         statement = (
             select(BlogPostTable)
             .where(
