@@ -64,6 +64,8 @@ class PostgresProfileRepository:
             return self._to_record(row) if row else None
 
     async def get_by_auth_user_id(self, auth_user_id: str) -> ProfileRecord | None:
+        # auth_user_id 컬럼으로 조회. 현재는 profiles.id == auth_user_id이지만,
+        # 나중에 id를 UUID auto-generate로 분리하더라도 이 메서드만 수정하면 된다.
         statement = select(ProfileTable).where(
             ProfileTable.auth_user_id == auth_user_id,
             ProfileTable.deleted_at.is_(None),
