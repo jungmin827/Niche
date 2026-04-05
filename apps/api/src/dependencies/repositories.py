@@ -42,6 +42,8 @@ from src.services.blog_post_service import BlogPostService
 from src.services.profile_service import ProfileService
 from src.services.upload_service import UploadService
 
+# NICHE_DATABASE_URL 미설정 시 graceful fallback으로 사용되는 인메모리 싱글톤.
+# 서버 재시작 시 데이터가 사라지므로 개발·테스트 환경 전용이다.
 _memory_session_repository = InMemorySessionRepository()
 _memory_highlight_repository = InMemoryHighlightRepository()
 _memory_quiz_repository = InMemoryQuizRepository()
