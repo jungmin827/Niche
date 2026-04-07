@@ -10,8 +10,8 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from src.config import get_settings
 from src.models import (  # noqa: F401 — register ORM tables
-    blog_post_table,
-    highlight_tables,
+    interest_table,
+    log_table,
     profile_table,
     quiz_tables,
     session_tables,
