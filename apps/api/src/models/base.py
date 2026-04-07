@@ -20,9 +20,12 @@ class SessionStatusDBEnum(str, Enum):
     CANCELLED = "cancelled"
 
 
-class HighlightSourceTypeDBEnum(str, Enum):
-    SESSION = "session"
-    SESSION_BUNDLE = "session_bundle"
+class LogTagDBEnum(str, Enum):
+    TASTING_NOTE = "tasting_note"
+    READING = "reading"
+    VISIT = "visit"
+    OBSERVATION = "observation"
+    OTHER = "other"
 
 
 class QuizJobStatusDBEnum(str, Enum):
