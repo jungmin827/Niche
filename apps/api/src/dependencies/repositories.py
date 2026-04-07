@@ -39,6 +39,8 @@ from src.repositories.session_repo import (
     PostgresSessionRepository,
 )
 from src.services.blog_post_service import BlogPostService
+from src.services.interest_service import InterestService
+from src.repositories.interest_repo import InterestRepository
 from src.services.profile_service import ProfileService
 from src.services.upload_service import UploadService
 
@@ -255,6 +257,28 @@ def get_profile_service(
     settings: Settings = Depends(get_settings),
 ) -> ProfileService:
     return ProfileService(repo=repo, settings=settings)
+
+
+@lru_cache
+def _get_postgres_interest_repository(database_url: str) -> InterestRepository:
+    settings = Settings(database_url=database_url, session_repository_backend="postgres")
+    return InterestRepository(get_async_session_factory(settings))
+
+def get_interest_repo(
+    settings: Settings = Depends(get_settings),
+) -> InterestRepository:
+    # Since it's MVP, we'll force Postgres and assume URL is valid.
+    if not settings.database_url:
+        raise ServiceUnavailableAppError(
+            "Persistence backend is unavailable.",
+            details={"backend": "postgres", "reason": "NICHE_DATABASE_URL not set"},
+        )
+    return _get_postgres_interest_repository(settings.database_url)
+
+def get_interest_service(
+    repo: InterestRepository = Depends(get_interest_repo),
+) -> InterestService:
+    return InterestService(repo=repo)
 
 
 def get_upload_service(settings: Settings = Depends(get_settings)) -> UploadService:
