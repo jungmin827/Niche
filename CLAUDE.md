@@ -1,7 +1,7 @@
 # NichE — Claude Code Project Context
 
 ## What This Project Is
-NichE is a mobile app for recording, proving, and sharing deep minor interests — books, taste, observation, reflection. The tone is editorial, minimal, quiet, precise.
+NichE is a "Depth Proof Engine"—a mobile app for recording, proving, and sharing deep minor interests (books, taste, observation). The tone is editorial, minimal, quiet, precise. It visualizes how long and deep a user has pursued an interest and outputs shareable visual cards.
 
 ## Architecture
 - **Frontend**: Expo SDK 54 + React Native + TypeScript, Expo Router, TanStack Query, Zustand, NativeWind
@@ -34,10 +34,10 @@ Consult these before making structural decisions:
 ## Implementation Priority
 1. Backend skeleton stabilization (`apps/api`)
 2. Frontend skeleton stabilization (`apps/mobile`)
-3. Session domain end-to-end (create / read / complete / note)
-4. Note / reflection flow
-5. Archive / highlights
-6. AI quiz flow
+3. Interest / Log core loop (create, list, score calculation, share card)
+4. Session domain end-to-end (time tracking, preservation)
+5. Zitter Chatbot feature preservation
+6. AI quiz flow (integrated with logs/sessions)
 
 **Not yet:** follow system, recommendation engine, likes/comments, complex worker infra
 
