@@ -21,3 +21,4 @@ dist-ios/
 # ide
 .vscode
 .idea
+.gstack/
