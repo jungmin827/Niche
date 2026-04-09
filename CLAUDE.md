@@ -15,6 +15,8 @@ Consult these before making structural decisions:
 | Topic | File |
 |---|---|
 | Product truth | `docs/product/niche_planning_v1.md` |
+| **Proof Engine design (office-hours, 최신)** | `docs/design/parkjungmin-main-design-20260407-204435.md` |
+| **MVP test plan (eng-review, 최신)** | `docs/design/parkjungmin-main-eng-review-test-plan-20260407-213442.md` |
 | Backend structure | `docs/backend/backend_fastapi.md` |
 | API contracts | `docs/backend/backend_api_contract.md` |
 | Database schema | `docs/database/database_supabase.md` |
@@ -31,15 +33,34 @@ Consult these before making structural decisions:
 - No flashy UI, no heavy gradients, no productivity-app copy
 - Do not overengineer
 
+## MVP Entity Design (office-hours 확정, 2026-04-07)
+```
+Interest: id, user_id, name, started_at (과거만 허용), is_public (기본 true)
+Log:      id, interest_id, text (1~2000자), tag (tasting_note|reading|visit|observation|other), logged_at, is_public (기본 false)
+```
+
+**Depth 점수 공식:**
+```
+depth_score = log10(days_since_start + 1) × log10(record_count + 2)
+```
+- 기록 0개: depth_score = None (표시 안 함)
+- MVP는 API 요청 시 실시간 계산 (캐싱 불필요)
+- v2에서 질적 평가(길이, 사진 첨부) 추가 검토
+
+**공유 카드:** 540×960px, 배경 #1a1a1a, react-native-view-shot (v1). 항목: 관심사명 / depth_score / 기간 / 기록 수 / 최근 기록 인용 / @username / "niche.app"
+
+**MVP 범위 밖:** Session 개념, 소셜 레이어(타 유저 탐색), 추천 엔진, 공유 카드 서버사이드 렌더링
+
 ## Implementation Priority
 1. Backend skeleton stabilization (`apps/api`)
 2. Frontend skeleton stabilization (`apps/mobile`)
-3. Interest / Log core loop (create, list, score calculation, share card)
-4. Session domain end-to-end (time tracking, preservation)
-5. Zitter Chatbot feature preservation
-6. AI quiz flow (integrated with logs/sessions)
+3. Interest / Log core loop — `POST /v1/interests`, `GET /v1/me/interests`, `POST /v1/interests/{id}/logs`, depth_score 실시간 계산
+4. 공유 카드 생성 (react-native-view-shot, 540×960px)
+5. Integration test — `apps/api/tests/integration/test_interest_flow_memory.py` (패턴: `test_mvp_flow_memory.py`)
+6. Zitter Chatbot feature preservation
+7. AI quiz flow (integrated with logs)
 
-**Not yet:** follow system, recommendation engine, likes/comments, complex worker infra
+**MVP 아님 (나중):** Session 도메인, follow system, recommendation engine, likes/comments, 공유 카드 서버사이드 렌더링
 
 ## Working Style
 Before coding:
