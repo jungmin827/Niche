@@ -1,0 +1,236 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1775743814270,
+  "projectRoot": "/Users/parkjungmin/Desktop/NichE",
+  "techStack": {
+    "languages": [
+      {
+        "name": "C/C++",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "Makefile"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": null,
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": "make build",
+    "testCommand": "make test",
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs"
+    ],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "apps": {
+      "path": "apps",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1775743813817,
+      "keyFiles": []
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 1,
+      "lastAccessed": 1775743813825,
+      "keyFiles": [
+        "README.md"
+      ]
+    },
+    "apps/api": {
+      "path": "apps/api",
+      "purpose": "API routes",
+      "fileCount": 10,
+      "lastAccessed": 1775743813832,
+      "keyFiles": [
+        "CLAUDE.md",
+        "README.md",
+        "alembic.ini"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "apps/api/src/schemas/interest.py",
+      "accessCount": 11,
+      "lastAccessed": 1775745807132,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 8,
+      "lastAccessed": 1775745585012,
+      "type": "directory"
+    },
+    {
+      "path": "apps/api/src/schemas/log.py",
+      "accessCount": 8,
+      "lastAccessed": 1775745760343,
+      "type": "file"
+    },
+    {
+      "path": "apps/api/src/routers/interests.py",
+      "accessCount": 7,
+      "lastAccessed": 1775745826372,
+      "type": "file"
+    },
+    {
+      "path": "apps/api/src/services/interest_service.py",
+      "accessCount": 6,
+      "lastAccessed": 1775745767852,
+      "type": "file"
+    },
+    {
+      "path": "CLAUDE.md",
+      "accessCount": 4,
+      "lastAccessed": 1775744528391,
+      "type": "file"
+    },
+    {
+      "path": "apps/api/src/repositories/interest_repo.py",
+      "accessCount": 3,
+      "lastAccessed": 1775745330167,
+      "type": "file"
+    },
+    {
+      "path": "apps/api/src/models/interest_table.py",
+      "accessCount": 3,
+      "lastAccessed": 1775745330879,
+      "type": "file"
+    },
+    {
+      "path": "apps/api/src",
+      "accessCount": 3,
+      "lastAccessed": 1775745359946,
+      "type": "directory"
+    },
+    {
+      "path": "apps/api/src/main.py",
+      "accessCount": 3,
+      "lastAccessed": 1775745365769,
+      "type": "file"
+    },
+    {
+      "path": "apps/api/src/schemas/common.py",
+      "accessCount": 3,
+      "lastAccessed": 1775745741663,
+      "type": "file"
+    },
+    {
+      "path": "docs/design/parkjungmin-main-design-20260407-204435.md",
+      "accessCount": 2,
+      "lastAccessed": 1775745174621,
+      "type": "file"
+    },
+    {
+      "path": "apps/api/src/models/log_table.py",
+      "accessCount": 2,
+      "lastAccessed": 1775745331797,
+      "type": "file"
+    },
+    {
+      "path": "docs/backend/backend_api_contract.md",
+      "accessCount": 2,
+      "lastAccessed": 1775745338935,
+      "type": "file"
+    },
+    {
+      "path": "apps/api/src/schemas",
+      "accessCount": 2,
+      "lastAccessed": 1775745339955,
+      "type": "directory"
+    },
+    {
+      "path": "docs/design/parkjungmin-main-eng-review-test-plan-20260407-213442.md",
+      "accessCount": 1,
+      "lastAccessed": 1775744448583,
+      "type": "file"
+    },
+    {
+      "path": "apps/api/src/models/interest.py",
+      "accessCount": 1,
+      "lastAccessed": 1775745030137,
+      "type": "file"
+    },
+    {
+      "path": "apps/api/src/models/log.py",
+      "accessCount": 1,
+      "lastAccessed": 1775745030193,
+      "type": "file"
+    },
+    {
+      "path": "apps/api/tests/integration/test_mvp_flow_postgres.py",
+      "accessCount": 1,
+      "lastAccessed": 1775745048149,
+      "type": "file"
+    },
+    {
+      "path": "apps/api/alembic/versions/938501b9a3f2_drop_deprecated_add_interest_and_log.py",
+      "accessCount": 1,
+      "lastAccessed": 1775745048573,
+      "type": "file"
+    },
+    {
+      "path": "apps/api/src/models/base.py",
+      "accessCount": 1,
+      "lastAccessed": 1775745061033,
+      "type": "file"
+    },
+    {
+      "path": "apps/api/src/dependencies/repositories.py",
+      "accessCount": 1,
+      "lastAccessed": 1775745061115,
+      "type": "file"
+    },
+    {
+      "path": "docs/backend/backend_fastapi.md",
+      "accessCount": 1,
+      "lastAccessed": 1775745179751,
+      "type": "file"
+    },
+    {
+      "path": "docs/frontend/frontend_app.md",
+      "accessCount": 1,
+      "lastAccessed": 1775745180316,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/src/api/client.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775745204333,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/src/features/session/queries.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775745204760,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/package.json",
+      "accessCount": 1,
+      "lastAccessed": 1775745214168,
+      "type": "directory"
+    }
+  ],
+  "userDirectives": []
+}

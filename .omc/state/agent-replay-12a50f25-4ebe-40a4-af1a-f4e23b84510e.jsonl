@@ -1,0 +1,10 @@
+{"t":0,"agent":"system","event":"keyword_detected","keyword":"ralplan"}
+{"t":0,"agent":"system","event":"mode_change","mode_from":"none","mode_to":"ralplan"}
+{"t":0,"agent":"ab9cb3c","agent_type":"explore","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"ab9cb3c","agent_type":"explore","event":"agent_stop","success":true,"duration_ms":66284}
+{"t":0,"agent":"a64eff8","agent_type":"architect","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a64eff8","agent_type":"architect","event":"agent_stop","success":true,"duration_ms":131273}
+{"t":0,"agent":"af6bf94","agent_type":"critic","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"af6bf94","agent_type":"critic","event":"agent_stop","success":true,"duration_ms":141599}
+{"t":0,"agent":"ad7d5c8","agent_type":"critic","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"ad7d5c8","agent_type":"critic","event":"agent_stop","success":true,"duration_ms":126650}

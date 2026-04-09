@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"source .venv/bin/activate 2>/dev/null || true && python -m unittest tests.integration.test_interest_flow_memory -v 2>&1\",\"timeout\":60000,\"description\":\"Run interest flow tests with unittes...",
+  "error": "Exit code 1\ntest_interest_flow_memory (unittest.loader._FailedTest) ... ERROR\n\n======================================================================\nERROR: test_interest_flow_memory (unittest.loader._FailedTest)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_interest_flow_memory\nTraceback (most recent call last):\n  File \"/Users/parkjungmin/.pyenv/versions/3.10.13/lib/python3.10/unittest/loader.py\", line 154, in loadTestsFro...",
+  "timestamp": "2026-04-09T14:46:24.544Z",
+  "retry_count": 3
+}
