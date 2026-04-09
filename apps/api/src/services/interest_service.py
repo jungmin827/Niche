@@ -18,12 +18,11 @@ class InterestService:
     def __init__(self, repo: InterestRepository):
         self.repo = repo
 
-    def _calculate_depth_score(self, started_at, record_count: int) -> float:
+    def _calculate_depth_score(self, started_at, record_count: int) -> float | None:
+        if record_count == 0:
+            return None
         today = datetime.now(timezone.utc).date()
-        days_since_start = (today - started_at).days
-        if days_since_start < 0:
-            days_since_start = 0
-
+        days_since_start = max(0, (today - started_at).days)
         score = math.log10(days_since_start + 1) * math.log10(record_count + 2)
         return round(score, 1)
 
