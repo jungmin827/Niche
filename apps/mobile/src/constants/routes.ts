@@ -37,4 +37,6 @@ export const routes = {
   interestCompose: '/(modals)/interest-compose',
   logCompose: (interestId: string) =>
     ({ pathname: '/(modals)/log-compose' as const, params: { interestId } }),
+  interestShare: (interestId: string) =>
+    ({ pathname: '/(modals)/interest-share' as const, params: { interestId } }),
 } as const;
