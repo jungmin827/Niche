@@ -14,4 +14,6 @@ export const queryKeys = {
   quizAttempt: (quizId: string, attemptId: string) => ['quiz', 'attempt', quizId, attemptId] as const,
   highlightSessionQuizResult: (sessionId: string) => ['highlight', 'quiz-result', sessionId] as const,
   feedWave: ['feed', 'wave'] as const,
+  interestList: ['interests', 'list'] as const,
+  interestDetail: (interestId: string) => ['interests', interestId] as const,
 } as const;
