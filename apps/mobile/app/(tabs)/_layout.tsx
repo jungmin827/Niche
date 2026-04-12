@@ -18,55 +18,55 @@ export default function TabsLayout() {
 
   return (
     <View style={{ flex: 1 }}>
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: '#111111',
-        tabBarInactiveTintColor: '#8A8A84',
-        tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#D9D9D4',
-          borderTopWidth: 1,
-          elevation: 0,
-          shadowOpacity: 0,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-        },
-        tabBarItemStyle: {
-          paddingBottom: 4,
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="session"
-        options={{
-          title: 'Session',
-          tabBarIcon: ({ color }) => <Feather name="clock" size={22} color={color} />,
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: '#111111',
+          tabBarInactiveTintColor: '#8A8A84',
+          tabBarStyle: {
+            backgroundColor: '#FFFFFF',
+            borderTopColor: '#D9D9D4',
+            borderTopWidth: 1,
+            elevation: 0,
+            shadowOpacity: 0,
+          },
+          tabBarLabelStyle: {
+            fontSize: 11,
+          },
+          tabBarItemStyle: {
+            paddingBottom: 4,
+          },
         }}
-      />
-      <Tabs.Screen
-        name="feed"
-        options={{
-          title: 'Feed',
-          tabBarIcon: ({ color }) => <Feather name="rss" size={22} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="blog"
-        options={{
-          title: 'Blog',
-          tabBarIcon: ({ color }) => <Feather name="edit-3" size={22} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="archive"
-        options={{
-          title: 'Archive',
-          tabBarIcon: ({ color }) => <Feather name="archive" size={22} color={color} />,
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="session"
+          options={{
+            title: 'Session',
+            tabBarIcon: ({ color }) => <Feather name="clock" size={22} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="feed"
+          options={{
+            title: 'Feed',
+            tabBarIcon: ({ color }) => <Feather name="rss" size={22} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="blog"
+          options={{
+            title: 'Blog',
+            tabBarIcon: ({ color }) => <Feather name="edit-3" size={22} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="archive"
+          options={{
+            title: 'Archive',
+            tabBarIcon: ({ color }) => <Feather name="archive" size={22} color={color} />,
+          }}
+        />
+      </Tabs>
       <Pressable
         onPress={() => router.push('/(modals)/jitter')}
         style={{
