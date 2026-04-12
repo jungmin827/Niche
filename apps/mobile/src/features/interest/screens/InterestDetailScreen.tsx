@@ -126,9 +126,19 @@ export default function InterestDetailScreen({ interestId }: { interestId: strin
         <Pressable onPress={() => router.back()} hitSlop={12} accessibilityRole="button">
           <Feather name="arrow-left" size={22} color={colors.text.primary} />
         </Pressable>
-        <Pressable onPress={handleDeleteInterest} hitSlop={12} accessibilityRole="button" accessibilityLabel="Delete interest">
-          <Feather name="trash-2" size={20} color={colors.text.tertiary} />
-        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 20, alignItems: 'center' }}>
+          <Pressable
+            onPress={() => router.push(routes.interestShare(interestId))}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Share interest card"
+          >
+            <Feather name="share" size={20} color={colors.text.tertiary} />
+          </Pressable>
+          <Pressable onPress={handleDeleteInterest} hitSlop={12} accessibilityRole="button" accessibilityLabel="Delete interest">
+            <Feather name="trash-2" size={20} color={colors.text.tertiary} />
+          </Pressable>
+        </View>
       </View>
 
       <FlatList
