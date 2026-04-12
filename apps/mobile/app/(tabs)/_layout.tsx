@@ -39,6 +39,13 @@ export default function TabsLayout() {
         }}
       >
         <Tabs.Screen
+          name="interests"
+          options={{
+            title: 'Interests',
+            tabBarIcon: ({ color }) => <Feather name="layers" size={22} color={color} />,
+          }}
+        />
+        <Tabs.Screen
           name="session"
           options={{
             title: 'Session',
