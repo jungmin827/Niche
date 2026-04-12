@@ -32,4 +32,9 @@ export const routes = {
   profileEdit: (displayName: string) =>
     `/(modals)/profile-edit?displayName=${encodeURIComponent(displayName)}`,
   jitter: '/(modals)/jitter',
+  interestHome: '/(tabs)/interests',
+  interestDetail: (interestId: string) => `/(tabs)/interests/${interestId}`,
+  interestCompose: '/(modals)/interest-compose',
+  logCompose: (interestId: string) =>
+    ({ pathname: '/(modals)/log-compose' as const, params: { interestId } }),
 } as const;
