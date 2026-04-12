@@ -14,6 +14,8 @@ export default function ModalsLayout() {
       <Stack.Screen name="quiz-answer" />
       <Stack.Screen name="quiz-result" />
       <Stack.Screen name="jitter" />
+      <Stack.Screen name="interest-compose" />
+      <Stack.Screen name="log-compose" />
     </Stack>
   );
 }
