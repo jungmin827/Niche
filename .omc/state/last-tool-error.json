@@ -1,7 +1,7 @@
 {
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"cd /Users/parkjungmin/Desktop/NichE/apps/api && source .venv/bin/activate 2>/dev/null || true && python -c \\\"from src.schemas.interest import InterestCreate, InterestResponse, InterestList...",
-  "error": "Exit code 1\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/Users/parkjungmin/Desktop/NichE/apps/api/src/routers/__init__.py\", line 2, in <module>\n    from . import interests as interests\n  File \"/Users/parkjungmin/Desktop/NichE/apps/api/src/routers/interests.py\", line 3, in <module>\n    from src.dependencies.repositories import get_interest_service\n  File \"/Users/parkjungmin/Desktop/NichE/apps/api/src/dependencies/repositories.py\", line 11, in <module>\n    fro...",
-  "timestamp": "2026-04-09T14:44:20.457Z",
-  "retry_count": 1
+  "tool_name": "Read",
+  "tool_input_preview": "{\"file_path\":\"/Users/parkjungmin/Desktop/NichE/docs/backend/backend_fastapi.md\"}",
+  "error": "File content (11703 tokens) exceeds maximum allowed tokens (10000). Use offset and limit parameters to read specific portions of the file, or search for specific content instead of reading the whole file.",
+  "timestamp": "2026-04-12T14:46:59.324Z",
+  "retry_count": 2
 }

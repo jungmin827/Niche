@@ -35,10 +35,28 @@
       "status": "completed",
       "completed_at": "2026-04-09T14:41:29.030Z",
       "duration_ms": 126650
+    },
+    {
+      "agent_id": "acb9f81116601abd5",
+      "agent_type": "Explore",
+      "started_at": "2026-04-12T16:35:57.085Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-12T16:38:37.013Z",
+      "duration_ms": 159928
+    },
+    {
+      "agent_id": "a7d8b568989fd6faf",
+      "agent_type": "oh-my-claudecode:planner",
+      "started_at": "2026-04-12T16:39:15.447Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-12T16:41:29.807Z",
+      "duration_ms": 134360
     }
   ],
-  "total_spawned": 4,
-  "total_completed": 4,
+  "total_spawned": 6,
+  "total_completed": 6,
   "total_failed": 0,
-  "last_updated": "2026-04-09T14:41:29.139Z"
+  "last_updated": "2026-04-13T02:14:03.734Z"
 }

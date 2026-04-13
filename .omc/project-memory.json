@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1775743814270,
+  "lastScanned": 1776004804391,
   "projectRoot": "/Users/parkjungmin/Desktop/NichE",
   "techStack": {
     "languages": [
@@ -44,14 +44,14 @@
       "path": "apps",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1775743813817,
+      "lastAccessed": 1776004804271,
       "keyFiles": []
     },
     "docs": {
       "path": "docs",
       "purpose": "Documentation",
       "fileCount": 1,
-      "lastAccessed": 1775743813825,
+      "lastAccessed": 1776004804273,
       "keyFiles": [
         "README.md"
       ]
@@ -60,7 +60,7 @@
       "path": "apps/api",
       "purpose": "API routes",
       "fileCount": 10,
-      "lastAccessed": 1775743813832,
+      "lastAccessed": 1776004804275,
       "keyFiles": [
         "CLAUDE.md",
         "README.md",
@@ -71,8 +71,20 @@
   "hotPaths": [
     {
       "path": "apps/api/src/schemas/interest.py",
-      "accessCount": 11,
-      "lastAccessed": 1775745807132,
+      "accessCount": 13,
+      "lastAccessed": 1776011786795,
+      "type": "file"
+    },
+    {
+      "path": "apps/api/src/schemas/log.py",
+      "accessCount": 10,
+      "lastAccessed": 1776011787645,
+      "type": "file"
+    },
+    {
+      "path": "apps/api/src/routers/interests.py",
+      "accessCount": 9,
+      "lastAccessed": 1776011779159,
       "type": "file"
     },
     {
@@ -82,21 +94,21 @@
       "type": "directory"
     },
     {
-      "path": "apps/api/src/schemas/log.py",
-      "accessCount": 8,
-      "lastAccessed": 1775745760343,
-      "type": "file"
-    },
-    {
-      "path": "apps/api/src/routers/interests.py",
-      "accessCount": 7,
-      "lastAccessed": 1775745826372,
-      "type": "file"
-    },
-    {
       "path": "apps/api/src/services/interest_service.py",
+      "accessCount": 8,
+      "lastAccessed": 1776011867342,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/src/constants/routes.ts",
+      "accessCount": 8,
+      "lastAccessed": 1776011975634,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/src/features/interest/screens/InterestDetailScreen.tsx",
       "accessCount": 6,
-      "lastAccessed": 1775745767852,
+      "lastAccessed": 1776011796268,
       "type": "file"
     },
     {
@@ -107,14 +119,32 @@
     },
     {
       "path": "apps/api/src/repositories/interest_repo.py",
-      "accessCount": 3,
-      "lastAccessed": 1775745330167,
+      "accessCount": 4,
+      "lastAccessed": 1776005242454,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/src/constants/queryKeys.ts",
+      "accessCount": 4,
+      "lastAccessed": 1776008574280,
       "type": "file"
     },
     {
       "path": "apps/api/src/models/interest_table.py",
-      "accessCount": 3,
-      "lastAccessed": 1775745330879,
+      "accessCount": 4,
+      "lastAccessed": 1776011796852,
+      "type": "file"
+    },
+    {
+      "path": "apps/api/src/main.py",
+      "accessCount": 4,
+      "lastAccessed": 1776011859051,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/src/features/interest/mutations.ts",
+      "accessCount": 4,
+      "lastAccessed": 1776011964414,
       "type": "file"
     },
     {
@@ -124,12 +154,6 @@
       "type": "directory"
     },
     {
-      "path": "apps/api/src/main.py",
-      "accessCount": 3,
-      "lastAccessed": 1775745365769,
-      "type": "file"
-    },
-    {
       "path": "apps/api/src/schemas/common.py",
       "accessCount": 3,
       "lastAccessed": 1775745741663,
@@ -137,14 +161,32 @@
     },
     {
       "path": "docs/design/parkjungmin-main-design-20260407-204435.md",
-      "accessCount": 2,
-      "lastAccessed": 1775745174621,
+      "accessCount": 3,
+      "lastAccessed": 1776005217435,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/src/features/session/queries.ts",
+      "accessCount": 3,
+      "lastAccessed": 1776011771232,
       "type": "file"
     },
     {
       "path": "apps/api/src/models/log_table.py",
-      "accessCount": 2,
-      "lastAccessed": 1775745331797,
+      "accessCount": 3,
+      "lastAccessed": 1776011797206,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/src/features/interest/queries.ts",
+      "accessCount": 3,
+      "lastAccessed": 1776011964810,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/src/features/interest/types.ts",
+      "accessCount": 3,
+      "lastAccessed": 1776011975073,
       "type": "file"
     },
     {
@@ -161,20 +203,92 @@
     },
     {
       "path": "docs/design/parkjungmin-main-eng-review-test-plan-20260407-213442.md",
-      "accessCount": 1,
-      "lastAccessed": 1775744448583,
+      "accessCount": 2,
+      "lastAccessed": 1776005218711,
+      "type": "file"
+    },
+    {
+      "path": "docs/backend/backend_fastapi.md",
+      "accessCount": 2,
+      "lastAccessed": 1776005228371,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/src/api/client.ts",
+      "accessCount": 2,
+      "lastAccessed": 1776005364684,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/app/(tabs)/_layout.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1776005674175,
+      "type": "file"
+    },
+    {
+      "path": "docs/product/niche_planning_v1.md",
+      "accessCount": 2,
+      "lastAccessed": 1776005873014,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/src/features/session/mutations.ts",
+      "accessCount": 2,
+      "lastAccessed": 1776011771175,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/src/features/interest/screens/InterestHomeScreen.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1776011774383,
       "type": "file"
     },
     {
       "path": "apps/api/src/models/interest.py",
-      "accessCount": 1,
-      "lastAccessed": 1775745030137,
+      "accessCount": 2,
+      "lastAccessed": 1776011782685,
       "type": "file"
     },
     {
       "path": "apps/api/src/models/log.py",
-      "accessCount": 1,
-      "lastAccessed": 1775745030193,
+      "accessCount": 2,
+      "lastAccessed": 1776011783334,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/src/api/session.ts",
+      "accessCount": 2,
+      "lastAccessed": 1776011787292,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/src/api/interest.ts",
+      "accessCount": 2,
+      "lastAccessed": 1776011787369,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/src/features/session/types.ts",
+      "accessCount": 2,
+      "lastAccessed": 1776011792742,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/app/(tabs)/interests/[interestId].tsx",
+      "accessCount": 2,
+      "lastAccessed": 1776011797008,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/src/features/session/screens/SessionHomeScreen.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1776011862865,
+      "type": "file"
+    },
+    {
+      "path": "apps/api/src/models/base.py",
+      "accessCount": 2,
+      "lastAccessed": 1776011867012,
       "type": "file"
     },
     {
@@ -190,21 +304,9 @@
       "type": "file"
     },
     {
-      "path": "apps/api/src/models/base.py",
-      "accessCount": 1,
-      "lastAccessed": 1775745061033,
-      "type": "file"
-    },
-    {
       "path": "apps/api/src/dependencies/repositories.py",
       "accessCount": 1,
       "lastAccessed": 1775745061115,
-      "type": "file"
-    },
-    {
-      "path": "docs/backend/backend_fastapi.md",
-      "accessCount": 1,
-      "lastAccessed": 1775745179751,
       "type": "file"
     },
     {
@@ -214,22 +316,58 @@
       "type": "file"
     },
     {
-      "path": "apps/mobile/src/api/client.ts",
-      "accessCount": 1,
-      "lastAccessed": 1775745204333,
-      "type": "file"
-    },
-    {
-      "path": "apps/mobile/src/features/session/queries.ts",
-      "accessCount": 1,
-      "lastAccessed": 1775745204760,
-      "type": "file"
-    },
-    {
       "path": "apps/mobile/package.json",
       "accessCount": 1,
       "lastAccessed": 1775745214168,
       "type": "directory"
+    },
+    {
+      "path": "apps/api/tests/integration/test_interest_flow_memory.py",
+      "accessCount": 1,
+      "lastAccessed": 1776005242765,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/src/components/ui/AppButton.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776005407431,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/src/components/ui/AppText.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776005441591,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/src/theme/colors.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776005441772,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/src/features/interest/hooks.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776005523381,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/app/(tabs)/interests/_layout.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776005621458,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/app/(tabs)/interests/index.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776005625821,
+      "type": "file"
+    },
+    {
+      "path": "apps/mobile/app/(modals)/interest-compose.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776005650672,
+      "type": "file"
     }
   ],
   "userDirectives": []
