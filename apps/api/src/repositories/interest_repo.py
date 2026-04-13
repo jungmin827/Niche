@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 from typing import Mapping, Sequence
 
 import sqlalchemy as sa
@@ -118,3 +119,94 @@ class InterestRepository:
             merged_record = await db.merge(record)
             merged_record.deleted_at = sa.func.now()
             await db.commit()
+
+
+class InMemoryInterestRepository:
+    def __init__(self) -> None:
+        self._interests: dict[str, InterestTable] = {}
+        self._logs: dict[str, LogTable] = {}
+
+    async def create_interest(self, profile_id: str, data: InterestCreate) -> InterestTable:
+        now = datetime.now(timezone.utc)
+        record = InterestTable(
+            id=str(uuid.uuid4()),
+            profile_id=profile_id,
+            name=data.name,
+            started_at=data.started_at,
+            is_public=True,
+            created_at=now,
+            updated_at=now,
+            deleted_at=None,
+        )
+        self._interests[record.id] = record
+        return record
+
+    async def get_by_id(self, interest_id: str) -> InterestTable | None:
+        r = self._interests.get(interest_id)
+        return r if r and r.deleted_at is None else None
+
+    async def list_by_profile_id(self, profile_id: str) -> Sequence[InterestTable]:
+        return [
+            r for r in self._interests.values()
+            if r.profile_id == profile_id and r.deleted_at is None
+        ]
+
+    async def count_logs_for_interest(self, interest_id: str) -> int:
+        return sum(
+            1 for l in self._logs.values()
+            if l.interest_id == interest_id and l.deleted_at is None
+        )
+
+    async def get_logs_for_interest(self, interest_id: str) -> Sequence[LogTable]:
+        return [
+            l for l in self._logs.values()
+            if l.interest_id == interest_id and l.deleted_at is None
+        ]
+
+    async def update_interest(self, record: InterestTable, data: InterestUpdate) -> InterestTable:
+        r = self._interests[record.id]
+        if data.name is not None:
+            r.name = data.name
+        if data.started_at is not None:
+            r.started_at = data.started_at
+        r.updated_at = datetime.now(timezone.utc)
+        return r
+
+    async def delete_interest(self, record: InterestTable) -> None:
+        r = self._interests.get(record.id)
+        if r:
+            r.deleted_at = datetime.now(timezone.utc)
+
+    async def create_log(self, interest_id: str, data: LogCreate) -> LogTable:
+        now = datetime.now(timezone.utc)
+        record = LogTable(
+            id=str(uuid.uuid4()),
+            interest_id=interest_id,
+            text=data.text,
+            tag=data.tag,
+            logged_at=now,
+            is_public=False,
+            created_at=now,
+            updated_at=now,
+            deleted_at=None,
+        )
+        self._logs[record.id] = record
+        return record
+
+    async def get_log_by_id(self, log_id: str) -> LogTable | None:
+        r = self._logs.get(log_id)
+        return r if r and r.deleted_at is None else None
+
+    async def update_log(self, record: LogTable, data: LogUpdate) -> LogTable:
+        r = self._logs[record.id]
+        if data.text is not None:
+            r.text = data.text
+        if data.tag is not None:
+            r.tag = data.tag
+        r.updated_at = datetime.now(timezone.utc)
+        return r
+
+    async def delete_log(self, record: LogTable) -> None:
+        r = self._logs.get(record.id)
+        if r:
+            r.deleted_at = datetime.now(timezone.utc)

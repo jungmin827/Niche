@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 import sqlalchemy as sa
-from sqlalchemy import Boolean, DateTime, Integer, Text, func, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Text, func, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -44,4 +44,30 @@ class ProfileTable(Base):
     )
 
 
+class ProfileStatsTable(Base):
+    __tablename__ = "profile_stats"
+
+    profile_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("profiles.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    total_sessions: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default=text("0")
+    )
+    total_focus_minutes: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default=text("0")
+    )
+    total_blog_posts: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default=text("0")
+    )
+    total_highlights: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default=text("0")
+    )
+    current_streak_days: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default=text("0")
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
 

@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"source .venv/bin/activate 2>/dev/null || true && python -m unittest tests.integration.test_interest_flow_memory -v 2>&1\",\"timeout\":60000,\"description\":\"Run interest flow tests with unittes...",
-  "error": "Exit code 1\ntest_interest_flow_memory (unittest.loader._FailedTest) ... ERROR\n\n======================================================================\nERROR: test_interest_flow_memory (unittest.loader._FailedTest)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_interest_flow_memory\nTraceback (most recent call last):\n  File \"/Users/parkjungmin/.pyenv/versions/3.10.13/lib/python3.10/unittest/loader.py\", line 154, in loadTestsFro...",
-  "timestamp": "2026-04-09T14:46:24.544Z",
-  "retry_count": 3
+  "tool_input_preview": "{\"command\":\".venv/bin/python -c \\\"from src.main import app; print('app loaded OK')\\\"\",\"description\":\"Verify FastAPI app loads without error\"}",
+  "error": "Exit code 1\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/Users/parkjungmin/Desktop/NichE/apps/api/src/main.py\", line 14, in <module>\n    from src.routers import (\n  File \"/Users/parkjungmin/Desktop/NichE/apps/api/src/routers/__init__.py\", line 2, in <module>\n    from . import interests as interests\n  File \"/Users/parkjungmin/Desktop/NichE/apps/api/src/routers/interests.py\", line 3, in <module>\n    from src.dependencies.repositories import get_interest_servic...",
+  "timestamp": "2026-04-12T15:12:59.529Z",
+  "retry_count": 1
 }
