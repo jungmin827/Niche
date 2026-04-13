@@ -14,21 +14,9 @@ export const routes = {
       quizScore: params.quizScore?.toString() ?? '',
     },
   }),
-  archiveHome: '/(tabs)/archive',
-  archiveHighlightDetail: (highlightId: string) => `/(tabs)/archive/highlight/${highlightId}`,
-  blogHome: '/(tabs)/blog',
-  blogDetail: (postId: string) => `/(tabs)/blog/${postId}`,
-  blogCompose: '/(modals)/blog-compose',
   quizLoading: '/(modals)/quiz-loading',
   quizAnswer: '/(modals)/quiz-answer',
   quizResult: '/(modals)/quiz-result',
-  highlightSessionPicker: '/(modals)/highlight-session-picker' as const,
-  highlightCreate: (sessionId: string) =>
-    ({ pathname: '/(modals)/highlight-create' as const, params: { sessionId } }),
-  highlightViewer: (highlightId: string) =>
-    ({ pathname: '/(modals)/highlight-viewer' as const, params: { highlightId } }),
-  feedCompose: '/(modals)/feed-compose',
-  feedComments: (postId: string) => `/(modals)/feed-comments?postId=${postId}`,
   profileEdit: (displayName: string) =>
     `/(modals)/profile-edit?displayName=${encodeURIComponent(displayName)}`,
   jitter: '/(modals)/jitter',

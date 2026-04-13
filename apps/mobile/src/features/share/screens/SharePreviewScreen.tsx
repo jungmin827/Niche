@@ -19,7 +19,6 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import NikeTemplate from '../../../components/share/NikeTemplate';
 import AppText from '../../../components/ui/AppText';
-import { routes } from '../../../constants/routes';
 import { usePressScale } from '../../../hooks/usePressScale';
 import { toApiError } from '../../../lib/error';
 import { colors } from '../../../theme/colors';
@@ -160,11 +159,8 @@ export default function SharePreviewScreen() {
           visibility: 'public',
         });
         router.dismissAll();
-        setTimeout(() => {
-          router.push(routes.archiveHighlightDetail(response.highlight.id));
-        }, 50);
       } else if (session) {
-        const response = await createHighlightMutation.mutateAsync({
+        await createHighlightMutation.mutateAsync({
           sourceType: 'session',
           sessionId: session.id,
           bundleId: null,
@@ -176,9 +172,6 @@ export default function SharePreviewScreen() {
           visibility: 'public',
         });
         router.dismissAll();
-        setTimeout(() => {
-          router.push(routes.archiveHighlightDetail(response.highlight.id));
-        }, 50);
       }
     } catch (error) {
       setIsCapturing(false);

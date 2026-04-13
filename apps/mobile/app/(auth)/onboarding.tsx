@@ -5,7 +5,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppButton from '../../src/components/ui/AppButton';
 import AppText from '../../src/components/ui/AppText';
-import { useUpdateProfileMutation } from '../../src/features/archive/mutations';
+import { useUpdateProfileMutation } from '../../src/features/profile/mutations';
 import { getMyProfile } from '../../src/api/profile';
 
 export const INTEREST_TAGS: string[] = [

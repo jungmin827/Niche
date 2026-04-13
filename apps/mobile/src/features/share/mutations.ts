@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createHighlight } from '../../api/archive';
+import { createHighlight } from '../../api/highlight';
 import { queryKeys } from '../../constants/queryKeys';
 import { HighlightCreateInput } from './types';
 

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppText from '../../src/components/ui/AppText';
-import { useUpdateProfileMutation } from '../../src/features/archive/mutations';
+import { useUpdateProfileMutation } from '../../src/features/profile/mutations';
 
 export default function ProfileEditScreen() {
   const { displayName: initialName } = useLocalSearchParams<{ displayName: string }>();

@@ -1,5 +1,4 @@
 import { apiRequest } from './client';
-import { presignUpload, uploadImageToStorage } from './blog';
 
 export type ProfileDTO = {
   id: string;
@@ -30,10 +29,4 @@ export async function updateMyProfile(
   input: UpdateProfileInput,
 ): Promise<{ profile: ProfileDTO }> {
   return apiRequest('/v1/me', { method: 'PATCH', body: input });
-}
-
-export async function uploadAvatar(localUri: string): Promise<string> {
-  const presignResponse = await presignUpload('image/jpeg', 'jpg');
-  await uploadImageToStorage(presignResponse, localUri);
-  return presignResponse.path;
 }
